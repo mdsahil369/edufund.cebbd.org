@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="500" viewBox="0 0 800 500" role="img" aria-label="CEBBD achievement artwork">
+  <defs>
+    <linearGradient id="bg5" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#16263f"/>
+      <stop offset="100%" stop-color="#2c4a73"/>
+    </linearGradient>
+    <pattern id="dots5" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="2" cy="2" r="2" fill="#9db8dd" opacity="0.18"/>
+    </pattern>
+  </defs>
+  <rect width="800" height="500" fill="url(#bg5)"/>
+  <rect width="800" height="500" fill="url(#dots5)"/>
+  <circle cx="690" cy="90" r="170" fill="#9db8dd" opacity="0.08"/>
+  <circle cx="90" cy="440" r="150" fill="#9db8dd" opacity="0.06"/>
+  <path d="M0 420 Q200 340 400 420 T800 420" fill="none" stroke="#9db8dd" stroke-width="2" opacity="0.25"/>
+  <path d="M0 450 Q200 370 400 450 T800 450" fill="none" stroke="#9db8dd" stroke-width="2" opacity="0.18"/>
+  <g opacity="0.92" transform="translate(400 250)">
+          <circle cx="0" cy="0" r="120" fill="none" stroke="#9db8dd" stroke-width="10"/>
+          <path d="M0 -70 L0 70 M-70 0 L70 0" stroke="#9db8dd" stroke-width="10" stroke-linecap="round"/>
+          <circle cx="0" cy="0" r="30" fill="#9db8dd"/>
+        </g>
+  <text x="46" y="64" fill="#9db8dd" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700" letter-spacing="4">CEBBD</text>
+  <text x="754" y="470" fill="#9db8dd" opacity="0.55" text-anchor="end" font-family="Segoe UI, Arial, sans-serif" font-size="72" font-weight="800">05</text>
+</svg>
