@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
@@ -12,6 +12,16 @@ interface RevealProps {
   once?: boolean;
 }
 
+/**
+ * Scroll-reveal wrapper.
+ *
+ * Important: this component must render the same markup on the server and on
+ * the client. Branching on `useReducedMotion()` here caused a hydration
+ * mismatch (server rendered a hidden `motion.div`, client rendered a plain
+ * `div`), which left whole sections invisible and stopped React from attaching
+ * event handlers to the buttons inside them. Reduced-motion handling now lives
+ * in the root `<MotionConfig reducedMotion="user">` provider instead.
+ */
 export function Reveal({
   children,
   className,
@@ -19,18 +29,12 @@ export function Reveal({
   y = 18,
   once = true,
 }: RevealProps) {
-  const reduceMotion = useReducedMotion();
-
-  if (reduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
-
   return (
     <motion.div
       className={className}
       initial={{ opacity: 0, y }}
       whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once, margin: "-60px" }}
+      viewport={{ once, amount: 0.15 }}
       transition={{ duration: 0.55, delay, ease: [0.22, 1, 0.36, 1] }}
     >
       {children}
@@ -44,18 +48,12 @@ interface StaggerProps {
 }
 
 export function Stagger({ children, className }: StaggerProps) {
-  const reduceMotion = useReducedMotion();
-
-  if (reduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
-
   return (
     <motion.div
       className={className}
       initial="hidden"
       whileInView="visible"
-      viewport={{ once: true, margin: "-60px" }}
+      viewport={{ once: true, amount: 0.15 }}
       variants={{
         hidden: {},
         visible: { transition: { staggerChildren: 0.08 } },
@@ -73,12 +71,6 @@ export function StaggerItem({
   children: ReactNode;
   className?: string;
 }) {
-  const reduceMotion = useReducedMotion();
-
-  if (reduceMotion) {
-    return <div className={className}>{children}</div>;
-  }
-
   return (
     <motion.div
       className={cn(className)}

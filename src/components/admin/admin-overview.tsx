@@ -31,6 +31,7 @@ import {
 
 export function AdminOverview() {
   const {
+    session,
     hydrated,
     students,
     donors,
@@ -127,8 +128,12 @@ export function AdminOverview() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Admin overview"
-        description="A live view of fundraising, campaign health, and items waiting for review. All figures are demo data stored in your browser."
+        title={
+          session?.name
+            ? `Welcome back, ${session.name.split(" ")[0]}`
+            : "Admin overview"
+        }
+        description="A live view of fundraising, campaign health, and items waiting for review."
         action={
           <>
             <Button asChild variant="outline">
@@ -464,8 +469,8 @@ export function AdminOverview() {
 
       <div className="flex items-center gap-2 rounded-xl border border-dashed border-border bg-white px-4 py-3 text-[11px] text-slate-muted">
         <Users className="size-4 shrink-0" />
-        Demo environment: changes you make here are saved in this browser and can
-        be reset from Site Settings.
+        Changes you make here are saved in this browser and can be reset from
+        Site Settings.
         <Inbox className="ml-auto hidden size-4 sm:block" aria-hidden="true" />
       </div>
     </div>

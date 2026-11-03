@@ -22,8 +22,8 @@ const sections: LegalSection[] = [
           please do not use the platform.
         </p>
         <p>
-          This is a frontend prototype. Some features are simulated and no real
-          payment is processed through this website.
+          No online payment gateway is used. Every contribution is verified
+          manually by the CEBBD finance team before it is added to a campaign.
         </p>
       </>
     ),
@@ -58,8 +58,8 @@ const sections: LegalSection[] = [
           <li>We may suspend accounts that are used fraudulently or abusively.</li>
         </ul>
         <p>
-          In this demo, accounts exist only in your browser. Do not reuse a real
-          password you use elsewhere.
+          Accounts are secured by our authentication provider. Do not reuse a
+          password you use for another service.
         </p>
       </>
     ),
@@ -101,7 +101,7 @@ const sections: LegalSection[] = [
         </p>
         <p>
           Duplicate or fraudulent submissions may be reversed. We do not charge a
-          platform fee in this prototype.
+          platform fee.
         </p>
       </>
     ),
@@ -178,8 +178,8 @@ const sections: LegalSection[] = [
         <p>
           The platform is provided on an “as is” and “as available” basis. We work to
           keep information accurate, but we do not guarantee that every profile,
-          amount, or status is free of error. This prototype contains illustrative
-          demo data.
+          amount, or status is free of error. Some figures may be illustrative
+          while the platform is being finalised.
         </p>
       </>
     ),

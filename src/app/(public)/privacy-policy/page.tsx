@@ -53,8 +53,9 @@ const sections: LegalSection[] = [
           </li>
         </ul>
         <p>
-          In this frontend prototype, account and donation data are stored in your
-          browser&apos;s local storage. They are not sent to a server.
+          Account details are stored securely by our authentication provider.
+          Sample donation and message data are kept in your browser&apos;s local
+          storage.
         </p>
       </>
     ),
@@ -144,16 +145,14 @@ const sections: LegalSection[] = [
     body: (
       <>
         <p>
-          This prototype uses browser local storage to remember your demo session,
-          donations, messages, and settings. The storage key is{" "}
-          <code className="rounded bg-surface px-1 py-0.5 text-[11px]">edufund-demo-v2</code>.
+          Secure authentication cookies keep you signed in. Sample donations,
+          messages, and settings are stored in your browser&apos;s local storage.
           Clearing your browser storage or using the reset option in Site Settings
-          removes this data.
+          removes this sample data.
         </p>
         <p>
-          We do not use advertising cookies or third-party tracking pixels. A
-          production deployment may use essential cookies for authentication and
-          security.
+          We do not use advertising cookies or third-party tracking pixels. Only
+          essential cookies are used for authentication and security.
         </p>
       </>
     ),
@@ -196,8 +195,8 @@ const sections: LegalSection[] = [
           your account is active and for a reasonable period afterward.
         </p>
         <p>
-          In this demo, data remains in your browser until you clear it or reset the
-          demo.
+          Sample data remains in your browser until you clear it or reset it from
+          Site Settings.
         </p>
       </>
     ),

@@ -714,14 +714,14 @@ export function AdminStudents() {
           <DialogHeader>
             <DialogTitle>Delete student?</DialogTitle>
             <DialogDescription>
-              This removes {deleting?.fullName ?? "this student"} from the demo
+              This removes {deleting?.fullName ?? "this student"} from the current data
               database. Existing donation records are kept but will no longer show
               the student name.
             </DialogDescription>
           </DialogHeader>
           <div className="flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-[11.5px] text-red-700">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-            This action cannot be undone in the current demo session.
+            This action cannot be undone in the current session.
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setDeleting(null)}>

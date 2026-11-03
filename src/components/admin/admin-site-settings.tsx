@@ -73,7 +73,7 @@ function SiteSettingsForm() {
     <div className="space-y-6">
       <PageHeader
         title="Site Settings"
-        description="Manage public site details, the announcement bar, and demo data. Changes are stored in this browser for the frontend prototype."
+        description="Manage public site details, the announcement bar, and sample data. Changes are stored in this browser."
         action={
           <Button onClick={save}>
             <Save className="size-4" />
@@ -272,7 +272,7 @@ function SiteSettingsForm() {
           <div className="rounded-2xl border border-brand/15 bg-brand-soft p-5">
             <p className="flex items-center gap-2 text-[12px] font-bold text-brand-dark">
               <ShieldCheck className="size-4" />
-              Frontend prototype
+Platform preview
             </p>
             <p className="mt-2 text-[11.5px] leading-relaxed text-slate-muted">
               Site settings are stored in localStorage in this phase. Header
@@ -284,7 +284,7 @@ function SiteSettingsForm() {
           <div className="rounded-2xl border border-border bg-white p-5 shadow-sm">
             <p className="flex items-center gap-2 text-[12px] font-bold text-navy">
               <RotateCcw className="size-4 text-brand" />
-              Reset demo data
+              Reset sample data
             </p>
             <p className="mt-2 text-[11px] leading-relaxed text-slate-muted">
               Restore the original students, donations, conversations, and
@@ -296,7 +296,7 @@ function SiteSettingsForm() {
               onClick={() => setResetOpen(true)}
             >
               <RotateCcw className="size-4" />
-              Reset demo data
+              Reset sample data
             </Button>
           </div>
         </aside>
@@ -305,7 +305,7 @@ function SiteSettingsForm() {
       <Dialog open={resetOpen} onOpenChange={setResetOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Reset all demo data?</DialogTitle>
+            <DialogTitle>Reset all sample data?</DialogTitle>
             <DialogDescription>
               This restores the seeded students, donations, messages, and settings,
               and signs you out. Any changes you made in this browser will be lost.
@@ -324,7 +324,7 @@ function SiteSettingsForm() {
               onClick={() => {
                 resetDemoData();
                 setResetOpen(false);
-                toast.success("Demo data restored. Please sign in again.");
+                toast.success("Sample data restored.");
                 router.push("/login");
               }}
             >

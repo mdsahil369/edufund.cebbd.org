@@ -110,8 +110,8 @@ export default async function DonatePage({
 
           <p className="mt-4 flex items-center gap-1.5 text-[11px] text-slate-muted">
             <LockKeyhole className="size-3.5 text-brand" />
-            No online payment gateway is used. This is a frontend prototype; no
-            real money is transferred.
+            No online payment gateway is used. Submit your transfer reference and
+            our finance team will verify it manually.
           </p>
         </div>
       </section>

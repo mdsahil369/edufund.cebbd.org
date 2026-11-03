@@ -68,32 +68,30 @@ export function SiteHeader() {
   return (
     <header>
       <div className="bg-navy text-white/75">
-        <div className="container-page flex h-9 items-center justify-between gap-4 text-[11px] sm:text-xs">
-          <div className="flex items-center gap-4">
+        <div className="container-page flex h-9 min-w-0 items-center justify-between gap-3 text-[11px] sm:text-xs">
+          <div className="flex min-w-0 items-center gap-3">
             <a
               href={`tel:${siteSettings.contactPhone.replace(/\s/g, "")}`}
-              className="hidden items-center gap-1.5 transition-colors hover:text-white sm:flex"
+              className="hidden shrink-0 items-center gap-1.5 transition-colors hover:text-white sm:flex"
             >
               <Phone className="size-3" aria-hidden="true" />
               {siteSettings.contactPhone}
             </a>
             <a
               href={`mailto:${siteSettings.contactEmail}`}
-              className="flex items-center gap-1.5 transition-colors hover:text-white"
+              className="flex min-w-0 items-center gap-1.5 transition-colors hover:text-white"
             >
-              <Mail className="size-3" aria-hidden="true" />
-              {siteSettings.contactEmail}
+              <Mail className="size-3 shrink-0" aria-hidden="true" />
+              <span className="truncate">{siteSettings.contactEmail}</span>
             </a>
           </div>
           <Link
             href={siteSettings.announcementHref}
-            className="group flex items-center gap-1.5 font-medium text-white/90 transition-colors hover:text-white"
+            className="group flex min-w-0 flex-1 items-center justify-end gap-1.5 font-medium text-white/90 transition-colors hover:text-white"
           >
-            <span className="hidden size-1.5 rounded-full bg-emerald-300 sm:inline-block" />
-            <span className="max-w-[62vw] truncate sm:max-w-none">
-              {siteSettings.announcement}
-            </span>
-            <ArrowRight className="size-3 transition-transform group-hover:translate-x-0.5" />
+            <span className="hidden size-1.5 shrink-0 rounded-full bg-emerald-300 sm:inline-block" />
+            <span className="min-w-0 truncate">{siteSettings.announcement}</span>
+            <ArrowRight className="size-3 shrink-0 transition-transform group-hover:translate-x-0.5" />
           </Link>
         </div>
       </div>
@@ -104,7 +102,7 @@ export function SiteHeader() {
           scrolled && "border-border shadow-[0_4px_24px_-12px_rgba(16,42,67,0.18)]",
         )}
       >
-        <div className="container-page flex h-[70px] items-center justify-between gap-6">
+        <div className="container-page flex h-[70px] min-w-0 items-center justify-between gap-4 sm:gap-6">
           <Logo />
 
           <nav aria-label="Main navigation" className="hidden lg:block">

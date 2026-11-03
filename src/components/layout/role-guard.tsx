@@ -28,8 +28,15 @@ export function RoleGuard({ role, children }: RoleGuardProps) {
   const router = useRouter();
 
   useEffect(() => {
-    if (hydrated && (!session || session.role !== role)) {
+    if (!hydrated) return;
+
+    if (!session) {
       router.replace("/login");
+      return;
+    }
+
+    if (session.role !== role) {
+      router.replace(session.role === "admin" ? "/admin" : "/dashboard");
     }
   }, [hydrated, session, role, router]);
 

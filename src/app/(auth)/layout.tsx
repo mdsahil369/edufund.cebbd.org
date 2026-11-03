@@ -48,7 +48,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
                   Ayesha Rahman
                 </p>
                 <p className="text-[10.5px] text-white/50">
-                  Monthly supporter · Demo account
+                  Monthly supporter
                 </p>
               </div>
             </figcaption>
@@ -89,7 +89,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         </div>
 
         <p className="px-5 pb-6 text-center text-[10.5px] text-slate-muted">
-          © 2026 Community Empowerment Bangladesh · Frontend demo environment
+          © 2026 Community Empowerment Bangladesh
         </p>
       </main>
     </div>

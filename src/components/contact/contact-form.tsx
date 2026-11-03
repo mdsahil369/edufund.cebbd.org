@@ -86,9 +86,9 @@ export function ContactForm() {
           Thank you, {sent.name.split(" ")[0]}.
         </h2>
         <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-slate-muted">
-          Your message has been recorded for the CEBBD team. In this frontend
-          prototype, no email is actually sent — a production deployment will
-          connect this form to the CEBBD inbox.
+          Your message has been recorded for the CEBBD team. For urgent matters,
+          please email or call us directly using the contact details on this
+          page.
         </p>
         <div className="mx-auto mt-4 max-w-md rounded-lg bg-surface px-3 py-2.5 text-left text-[11px] text-slate-muted">
           <p className="font-semibold text-ink">Reference</p>

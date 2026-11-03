@@ -342,7 +342,8 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
         </h2>
         <p className="mt-2 text-[13.5px] leading-relaxed text-slate-muted">
           Donor accounts keep your donation history and verification status in one
-          place. This is a frontend demo — no real payment is processed.
+          place. No online payment is processed — our finance team verifies every
+          transfer manually.
         </p>
         <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Button asChild size="lg">
@@ -352,9 +353,6 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
             <Link href="/register">Create an account</Link>
           </Button>
         </div>
-        <p className="mt-4 rounded-lg bg-surface px-3 py-2 text-[11px] text-slate-muted">
-          Demo donor: <strong>donor@edufund.demo</strong> · any password
-        </p>
       </div>
     );
   }

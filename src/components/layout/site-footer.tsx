@@ -157,7 +157,7 @@ export function SiteFooter() {
                 Verified manual donations
               </span>
               <span className="rounded-full border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wider">
-                Frontend demo
+                Secure access
               </span>
             </div>
           </div>

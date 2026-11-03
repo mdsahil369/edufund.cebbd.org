@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 interface FundingProgressProps {
@@ -20,7 +20,6 @@ export function FundingProgress({
   label,
   animate = true,
 }: FundingProgressProps) {
-  const reduceMotion = useReducedMotion();
   const clamped = Math.max(0, Math.min(100, percent));
 
   return (
@@ -32,7 +31,7 @@ export function FundingProgress({
       aria-valuenow={clamped}
       aria-label={label ?? `${clamped}% funded`}
     >
-      {animate && !reduceMotion ? (
+      {animate ? (
         <motion.div
           className={cn("h-full rounded-full bg-brand", barClassName)}
           initial={{ width: 0 }}

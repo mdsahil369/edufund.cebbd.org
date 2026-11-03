@@ -63,8 +63,8 @@ export function ImpactStatsSection({ stats }: ImpactStatsSectionProps) {
           ))}
         </div>
         <p className="mt-8 border-t border-dashed border-border pt-4 text-center text-[11px] text-slate-muted">
-          Illustrative demo statistics for this frontend prototype. Live figures
-          will come from the verified CEBBD database in Phase 2.
+          Illustrative statistics. Live figures will come from the verified
+          CEBBD database.
         </p>
       </div>
     </section>

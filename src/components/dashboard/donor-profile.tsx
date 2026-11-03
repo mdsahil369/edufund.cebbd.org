@@ -388,7 +388,7 @@ function ProfileForm({ donor }: { donor: Donor }) {
             <div className="rounded-lg border border-border bg-surface px-3.5 py-3 text-[11px] leading-relaxed text-slate-muted">
               <CheckCircle2 className="mr-1 inline size-3.5 text-emerald-600" />
               Changing your email updates the address used to sign in to this
-              demo. Contact details are never exposed to students or the public.
+              profile. Contact details are never exposed to students or the public.
             </div>
 
             <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
+import { MotionConfig } from "framer-motion";
 import "./globals.css";
 import { DemoProvider } from "@/lib/store/demo-store";
 import { Toaster } from "@/components/ui/sonner";
@@ -70,14 +71,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="en" className={`${jakarta.variable} h-full`}>
       <body className="min-h-full bg-background font-sans text-ink antialiased">
         <DemoProvider>
-          <a
-            href="#main-content"
-            className="sr-only z-100 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
-          >
-            Skip to content
-          </a>
-          {children}
-          <Toaster position="top-right" richColors closeButton />
+          <MotionConfig reducedMotion="user">
+            <a
+              href="#main-content"
+              className="sr-only z-100 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white focus:not-sr-only focus:fixed focus:top-3 focus:left-3"
+            >
+              Skip to content
+            </a>
+            {children}
+            <Toaster position="top-right" richColors closeButton />
+          </MotionConfig>
         </DemoProvider>
       </body>
     </html>

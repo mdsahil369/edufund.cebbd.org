@@ -265,8 +265,8 @@ export default function AboutPage() {
               </div>
             ))}
             <p className="text-[10px] text-slate-muted sm:col-span-2">
-              Programme figures are illustrative demo data for this frontend
-              prototype.
+              Programme figures are illustrative and will be updated as verified
+              data is added.
             </p>
           </div>
         </div>

@@ -323,7 +323,7 @@ function SupportPlanForm({ student }: { student: Student }) {
           </div>
           <div className="rounded-lg border border-brand/15 bg-brand-soft p-3 text-[10.5px] leading-relaxed text-slate-muted">
             <CheckCircle2 className="mr-1 inline size-3.5 text-brand" />
-            Saving updates the public profile immediately in this demo. The
+            Saving updates the public profile immediately. The
             donation flow will use the new amounts on the next visit.
           </div>
         </div>

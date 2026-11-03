@@ -9,6 +9,7 @@ import { ArrowLeft, ArrowRight, CheckCircle2, Loader2, Mail } from "lucide-react
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { createClient } from "@/lib/supabase/client";
 
 const forgotSchema = z.object({
   email: z
@@ -34,10 +35,29 @@ export function ForgotPasswordForm() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    setSentEmail(values.email);
-    setSent(true);
-    toast.success("Reset instructions prepared.");
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(
+        values.email.trim().toLowerCase(),
+        {
+          redirectTo:
+            typeof window !== "undefined"
+              ? `${window.location.origin}/reset-password`
+              : undefined,
+        },
+      );
+
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+
+      setSentEmail(values.email);
+      setSent(true);
+      toast.success("Password reset email sent.");
+    } catch {
+      toast.error("Could not send the reset email. Please try again.");
+    }
   });
 
   if (sent) {
@@ -52,9 +72,9 @@ export function ForgotPasswordForm() {
           <strong className="font-semibold text-ink">{sentEmail}</strong>, you will
           receive password reset instructions shortly.
         </p>
-        <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2.5 text-left text-[11px] leading-relaxed text-amber-800">
-          Demo note: no email is actually sent in this frontend prototype. Use the
-          demo accounts on the sign-in page to continue exploring.
+        <div className="mt-4 rounded-xl border border-brand/15 bg-brand-soft px-3 py-2.5 text-left text-[11px] leading-relaxed text-slate-muted">
+          The link expires after a short time. If it has expired, request a new
+          reset email.
         </div>
         <div className="mt-6 space-y-2">
           <Button asChild size="lg" className="w-full">
@@ -78,8 +98,8 @@ export function ForgotPasswordForm() {
         Reset your password
       </h1>
       <p className="mt-2 text-[13px] leading-relaxed text-slate-muted">
-        Enter the email address linked to your donor account. We will prepare
-        instructions for resetting your password.
+        Enter the email address linked to your donor or admin account. We will
+        send you a secure link to reset your password.
       </p>
 
       <form onSubmit={onSubmit} className="mt-6 space-y-4" noValidate>
@@ -113,7 +133,7 @@ export function ForgotPasswordForm() {
           ) : (
             <ArrowRight className="size-4" />
           )}
-          {isSubmitting ? "Preparing instructions…" : "Send reset instructions"}
+          {isSubmitting ? "Sending reset email…" : "Send reset email"}
         </Button>
       </form>
 

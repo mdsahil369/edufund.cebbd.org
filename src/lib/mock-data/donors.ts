@@ -4,7 +4,7 @@ export const donors: Donor[] = [
   {
     id: "donor-01",
     fullName: "Ayesha Rahman",
-    email: "donor@edufund.demo",
+    email: "ayesha.rahman@example.com",
     phone: "01700-000201",
     joinedAt: "2025-11-04",
     status: "active",
@@ -75,7 +75,7 @@ export const donors: Donor[] = [
   {
     id: "donor-08",
     fullName: "CEBBD Community Fund",
-    email: "fund@cebbd.demo",
+    email: "fund@cebbd.org",
     phone: "01700-000208",
     joinedAt: "2025-01-01",
     status: "active",

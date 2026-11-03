@@ -93,9 +93,8 @@ export function LegalPage({
         <article className="min-w-0 max-w-3xl">
           <div className="rounded-xl border border-brand/15 bg-brand-soft px-4 py-3 text-[11.5px] leading-relaxed text-slate-muted">
             <ShieldCheck className="mr-1 inline size-3.5 text-brand" />
-            This is a frontend prototype for EduFund CEBBD. Account data, donations,
-            and messages in this demo are stored in your browser&apos;s local storage.
-            A production deployment will use a secure backend with Supabase.
+            EduFund CEBBD uses Supabase for secure authentication. Sample donation
+            and message data are stored in your browser&apos;s local storage.
           </div>
 
           <div className="mt-8 space-y-9">

@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
+import type { User } from "@supabase/supabase-js";
 import type {
   CampaignStatus,
   Conversation,
@@ -36,10 +37,67 @@ import {
   siteSettings as initialSiteSettings,
 } from "@/lib/mock-data/settings";
 import { getFunding, generateId } from "@/lib/utils";
+import { createClient } from "@/lib/supabase/client";
 
 const STORAGE_KEY = "edufund-demo-v2";
-const DEMO_DONOR_ID = "donor-01";
-const ADMIN_EMAIL = "admin@edufund.demo";
+
+type AuthRole = "donor" | "admin";
+
+function displayNameFor(user: User): string {
+  const metadata = user.user_metadata ?? {};
+  const fullName =
+    typeof metadata.full_name === "string" ? metadata.full_name.trim() : "";
+  if (fullName) return fullName;
+
+  const name = typeof metadata.name === "string" ? metadata.name.trim() : "";
+  if (name) return name;
+
+  return user.email?.split("@")[0] ?? "Supporter";
+}
+
+function roleFor(user: User): AuthRole {
+  return user.app_metadata?.role === "admin" ? "admin" : "donor";
+}
+
+function donorFromUser(user: User): Donor {
+  const metadata = user.user_metadata ?? {};
+  const phone =
+    typeof metadata.phone === "string" && metadata.phone.trim()
+      ? metadata.phone.trim()
+      : undefined;
+
+  return {
+    id: user.id,
+    fullName: displayNameFor(user),
+    email: user.email ?? "",
+    phone,
+    joinedAt: user.created_at ?? new Date().toISOString(),
+    status: "active",
+    showNamePublicly: false,
+  };
+}
+
+function authErrorMessage(message: string): string {
+  const normalized = message.toLowerCase();
+
+  if (normalized.includes("invalid login credentials")) {
+    return "Email or password is incorrect.";
+  }
+  if (normalized.includes("email not confirmed")) {
+    return "Please confirm your email address before signing in. Check your inbox for the confirmation link.";
+  }
+  if (normalized.includes("user already registered")) {
+    return "An account with this email already exists. Try signing in instead.";
+  }
+  if (normalized.includes("password should be at least")) {
+    return "Use a password with at least 8 characters.";
+  }
+  if (normalized.includes("rate limit") || normalized.includes("too many")) {
+    return "Too many attempts. Please wait a moment and try again.";
+  }
+
+  return message;
+}
 
 interface DemoDataState {
   session: Session | null;
@@ -69,6 +127,7 @@ interface RegisterInput {
   fullName: string;
   email: string;
   phone?: string;
+  password: string;
 }
 
 interface DemoContextValue extends DemoDataState {
@@ -78,11 +137,14 @@ interface DemoContextValue extends DemoDataState {
   login: (
     email: string,
     password: string,
-  ) => Promise<{ ok: boolean; role?: "donor" | "admin"; error?: string }>;
-  register: (
-    input: RegisterInput,
-  ) => Promise<{ ok: boolean; role?: "donor"; error?: string }>;
-  logout: () => void;
+  ) => Promise<{ ok: boolean; role?: AuthRole; error?: string }>;
+  register: (input: RegisterInput) => Promise<{
+    ok: boolean;
+    role?: "donor";
+    error?: string;
+    needsEmailConfirmation?: boolean;
+  }>;
+  logout: () => Promise<void>;
   submitDonation: (input: DonationInput) => Promise<Donation>;
   approveDonation: (id: string) => void;
   rejectDonation: (id: string, note: string) => void;
@@ -116,8 +178,36 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DemoDataState>(createInitialState);
   const [hydrated, setHydrated] = useState(false);
 
-  // Restore the demo session/data from localStorage after mount so the server
-  // and first client render always match.
+  const applyUser = useCallback((user: User | null) => {
+    if (!user) {
+      setState((previous) => ({ ...previous, session: null }));
+      return;
+    }
+
+    const role = roleFor(user);
+    const name = displayNameFor(user);
+    const email = user.email ?? "";
+
+    setState((previous) => {
+      let donors = previous.donors;
+
+      if (role === "donor" && !donors.some((donor) => donor.id === user.id)) {
+        donors = [donorFromUser(user), ...donors];
+      }
+
+      const session: Session = {
+        role,
+        donorId: role === "donor" ? user.id : undefined,
+        name,
+        email,
+      };
+
+      return { ...previous, donors, session };
+    });
+  }, []);
+
+  // Restore the sample data from localStorage after mount. Supabase owns the
+  // auth session now, so the stored `session` field is intentionally ignored.
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
@@ -128,113 +218,152 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         };
         const data = parsed.data;
         if (parsed.version === 2 && data) {
-          setState((previous) => ({
-            ...previous,
-            ...data,
-            session: data.session ?? null,
-          }));
+          // Hydrating from localStorage after mount is intentional: the server
+          // has no access to it, so doing this during render would mismatch.
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setState((previous) => ({ ...previous, ...data, session: null }));
         }
       }
     } catch {
-      // Corrupt demo storage should never break the prototype.
-    } finally {
-      setHydrated(true);
+      // Corrupt storage should never break the app.
     }
   }, []);
+
+  // Load the real Supabase user and keep the session in sync with auth events.
+  useEffect(() => {
+    let active = true;
+    let unsubscribe: (() => void) | undefined;
+
+    try {
+      const supabase = createClient();
+
+      const sync = async () => {
+        try {
+          const {
+            data: { user },
+          } = await supabase.auth.getUser();
+          if (active) applyUser(user);
+        } catch {
+          if (active) applyUser(null);
+        } finally {
+          if (active) setHydrated(true);
+        }
+      };
+
+      void sync();
+
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        // Supabase holds an internal lock while this callback runs. Defer the
+        // state update so we never call other Supabase methods inside it.
+        setTimeout(() => {
+          if (active) applyUser(session?.user ?? null);
+        }, 0);
+      });
+
+      unsubscribe = () => subscription.unsubscribe();
+    } catch {
+      // Missing configuration should not trap the UI in a loading state.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setHydrated(true);
+    }
+
+    return () => {
+      active = false;
+      unsubscribe?.();
+    };
+  }, [applyUser]);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ version: 2, data: state }),
+        JSON.stringify({ version: 2, data: { ...state, session: null } }),
       );
     } catch {
-      // Storage may be unavailable (private mode); the demo still works.
+      // Storage may be unavailable (private mode); the app still works.
     }
   }, [state, hydrated]);
 
   const login = useCallback(
     async (email: string, password: string) => {
-      await new Promise((resolve) => setTimeout(resolve, 550));
-      const normalized = email.trim().toLowerCase();
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
+        });
 
-      if (normalized === ADMIN_EMAIL) {
-        setState((previous) => ({
-          ...previous,
-          session: {
-            role: "admin",
-            name: "CEBBD Admin",
-            email: ADMIN_EMAIL,
-          },
-        }));
-        return { ok: true as const, role: "admin" as const };
+        if (error) {
+          return { ok: false as const, error: authErrorMessage(error.message) };
+        }
+
+        if (!data.user) {
+          return { ok: false as const, error: "Could not sign you in." };
+        }
+
+        applyUser(data.user);
+        return { ok: true as const, role: roleFor(data.user) };
+      } catch {
+        return {
+          ok: false as const,
+          error: "Authentication is unavailable right now. Please try again.",
+        };
       }
-
-      if (!password) {
-        return { ok: false as const, error: "Please enter your password." };
-      }
-
-      const donor =
-        state.donors.find(
-          (item) => item.email.toLowerCase() === normalized,
-        ) ?? state.donors.find((item) => item.id === DEMO_DONOR_ID);
-
-      if (!donor) {
-        return { ok: false as const, error: "No donor account found." };
-      }
-
-      setState((previous) => ({
-        ...previous,
-        session: {
-          role: "donor",
-          donorId: donor.id,
-          name: donor.fullName,
-          email: donor.email,
-        },
-      }));
-      return { ok: true as const, role: "donor" as const };
     },
-    [state.donors],
+    [applyUser],
   );
 
-  const register = useCallback(async (input: RegisterInput) => {
-    await new Promise((resolve) => setTimeout(resolve, 650));
-    const existing = state.donors.find(
-      (donor) => donor.email.toLowerCase() === input.email.trim().toLowerCase(),
-    );
-    if (existing) {
-      return {
-        ok: false as const,
-        error: "An account with this email already exists. Try signing in.",
-      };
+  const register = useCallback(
+    async (input: RegisterInput) => {
+      try {
+        const supabase = createClient();
+        const { data, error } = await supabase.auth.signUp({
+          email: input.email.trim().toLowerCase(),
+          password: input.password,
+          options: {
+            data: {
+              full_name: input.fullName.trim(),
+              phone: input.phone?.trim() || null,
+            },
+          },
+        });
+
+        if (error) {
+          return { ok: false as const, error: authErrorMessage(error.message) };
+        }
+
+        // When email confirmation is enabled Supabase returns no session until
+        // the user clicks the confirmation link.
+        if (!data.session || !data.user) {
+          return {
+            ok: true as const,
+            role: "donor" as const,
+            needsEmailConfirmation: true,
+          };
+        }
+
+        applyUser(data.user);
+        return { ok: true as const, role: "donor" as const };
+      } catch {
+        return {
+          ok: false as const,
+          error: "Authentication is unavailable right now. Please try again.",
+        };
+      }
+    },
+    [applyUser],
+  );
+
+  const logout = useCallback(async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Ignore a missing configuration; local state is still cleared below.
     }
-
-    const donor: Donor = {
-      id: generateId("donor"),
-      fullName: input.fullName.trim(),
-      email: input.email.trim().toLowerCase(),
-      phone: input.phone?.trim() || undefined,
-      joinedAt: new Date().toISOString(),
-      status: "active",
-      showNamePublicly: false,
-    };
-
-    setState((previous) => ({
-      ...previous,
-      donors: [donor, ...previous.donors],
-      session: {
-        role: "donor",
-        donorId: donor.id,
-        name: donor.fullName,
-        email: donor.email,
-      },
-    }));
-
-    return { ok: true as const, role: "donor" as const };
-  }, [state.donors]);
-
-  const logout = useCallback(() => {
     setState((previous) => ({ ...previous, session: null }));
     toast.success("You have been signed out.");
   }, []);
@@ -494,6 +623,18 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             }
           : previous.session,
       }));
+
+      // Keep the name in Supabase user metadata so it survives a refresh or a
+      // different browser. Email changes go through Supabase's own flow.
+      const metadata: Record<string, unknown> = {};
+      if (patch.fullName !== undefined) metadata.full_name = patch.fullName;
+      if (patch.phone !== undefined) metadata.phone = patch.phone;
+
+      if (Object.keys(metadata).length > 0) {
+        void createClient()
+          .auth.updateUser({ data: metadata })
+          .catch(() => undefined);
+      }
     },
     [state.session],
   );
@@ -601,8 +742,20 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
-    setState(createInitialState());
-    toast.success("Demo data has been reset.");
+    setState((previous) => {
+      const fresh = createInitialState();
+      const donorId = previous.session?.donorId;
+      const currentDonor = donorId
+        ? previous.donors.find((donor) => donor.id === donorId)
+        : undefined;
+
+      return {
+        ...fresh,
+        session: previous.session,
+        donors: currentDonor ? [currentDonor, ...fresh.donors] : fresh.donors,
+      };
+    });
+    toast.success("Sample data has been reset.");
   }, []);
 
   const fundingFor = useCallback(

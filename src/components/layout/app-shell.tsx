@@ -173,7 +173,7 @@ export function AppShell({ variant, nav, children }: AppShellProps) {
                 isAdmin ? "text-white" : "text-navy",
               )}
             >
-              {session?.name ?? "Demo user"}
+              {session?.name ?? "User"}
             </p>
             <p
               className={cn(

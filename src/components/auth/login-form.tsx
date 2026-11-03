@@ -31,12 +31,10 @@ export function LoginForm() {
   const router = useRouter();
   const { login } = useDemoData();
   const [formError, setFormError] = useState<string | null>(null);
-  const [demoLoading, setDemoLoading] = useState<"donor" | "admin" | null>(null);
 
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -59,26 +57,6 @@ export function LoginForm() {
     router.push(result.role === "admin" ? "/admin" : "/dashboard");
   });
 
-  const demoLogin = async (role: "donor" | "admin") => {
-    setFormError(null);
-    setDemoLoading(role);
-    const email = role === "admin" ? "admin@edufund.demo" : "donor@edufund.demo";
-    setValue("email", email);
-    setValue("password", "demo1234");
-    const result = await login(email, "demo1234");
-    setDemoLoading(null);
-    if (!result.ok) {
-      setFormError(result.error ?? "Could not sign you in.");
-      return;
-    }
-    toast.success(
-      role === "admin"
-        ? "Signed in as the CEBBD admin."
-        : "Signed in as the demo donor.",
-    );
-    router.push(role === "admin" ? "/admin" : "/dashboard");
-  };
-
   return (
     <div className="rounded-2xl border border-border bg-white p-6 shadow-[0_18px_45px_-35px_rgba(16,42,67,0.4)] sm:p-8">
       <div className="mb-6">
@@ -93,48 +71,6 @@ export function LoginForm() {
           Sign in to track your donations, follow supported students, and message
           the CEBBD team.
         </p>
-      </div>
-
-      <div className="mb-6 rounded-xl border border-brand/15 bg-brand-soft p-3.5">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-brand-dark">
-          Demo accounts
-        </p>
-        <p className="mt-1 text-[11px] leading-relaxed text-slate-muted">
-          This is a frontend prototype. Use a demo account below, or any password
-          with a registered donor email.
-        </p>
-        <div className="mt-2.5 grid grid-cols-2 gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => demoLogin("donor")}
-            disabled={demoLoading !== null}
-            className="bg-white"
-          >
-            {demoLoading === "donor" ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : null}
-            Demo donor
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => demoLogin("admin")}
-            disabled={demoLoading !== null}
-            className="bg-white"
-          >
-            {demoLoading === "admin" ? (
-              <Loader2 className="size-3.5 animate-spin" />
-            ) : null}
-            Demo admin
-          </Button>
-        </div>
-        <div className="mt-2 space-y-0.5 text-[10px] text-slate-muted">
-          <p>Donor: donor@edufund.demo</p>
-          <p>Admin: admin@edufund.demo</p>
-        </div>
       </div>
 
       <form onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -220,6 +156,11 @@ export function LoginForm() {
         <Link href="/register" className="font-semibold text-brand hover:text-brand-dark">
           Create a donor account
         </Link>
+      </p>
+
+      <p className="mt-3 rounded-lg bg-surface px-3 py-2.5 text-center text-[10.5px] leading-relaxed text-slate-muted">
+        Admin accounts are created and managed by the CEBBD team. Use the same
+        form to sign in with your admin email and password.
       </p>
     </div>
   );

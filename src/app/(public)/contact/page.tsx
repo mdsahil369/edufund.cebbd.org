@@ -165,8 +165,8 @@ export default function ContactPage() {
 
             <div className="rounded-2xl border border-dashed border-border bg-white p-4 text-[10.5px] leading-relaxed text-slate-muted">
               <MessageSquare className="mb-1 size-3.5 text-brand" />
-              This is a frontend demo. The form records a success state locally and
-              does not send email yet.
+              The form records a success state locally and does not send email
+              yet.
             </div>
           </aside>
         </div>

@@ -61,6 +61,9 @@ export function RegisterForm() {
   const router = useRouter();
   const { register: registerDonor } = useDemoData();
   const [formError, setFormError] = useState<string | null>(null);
+  const [confirmationEmail, setConfirmationEmail] = useState<string | null>(
+    null,
+  );
 
   const {
     register,
@@ -85,6 +88,7 @@ export function RegisterForm() {
       fullName: values.fullName,
       email: values.email,
       phone: values.phone,
+      password: values.password,
     });
 
     if (!result.ok) {
@@ -93,9 +97,52 @@ export function RegisterForm() {
       return;
     }
 
+    if (result.needsEmailConfirmation) {
+      setConfirmationEmail(values.email.trim().toLowerCase());
+      toast.success("Check your email to confirm your account.");
+      return;
+    }
+
     toast.success("Your donor account is ready. Welcome to EduFund CEBBD.");
     router.push("/dashboard");
   });
+
+  if (confirmationEmail) {
+    return (
+      <div className="rounded-2xl border border-border bg-white p-6 text-center shadow-[0_18px_45px_-35px_rgba(16,42,67,0.4)] sm:p-8">
+        <span className="mx-auto inline-flex size-14 items-center justify-center rounded-2xl bg-brand-light text-brand-dark">
+          <Mail className="size-7" />
+        </span>
+        <h1 className="mt-5 text-xl font-extrabold text-navy">
+          Confirm your email
+        </h1>
+        <p className="mt-2 text-[13px] leading-relaxed text-slate-muted">
+          We sent a confirmation link to{" "}
+          <strong className="font-semibold text-ink">{confirmationEmail}</strong>.
+          Click the link in that email, then sign in to open your dashboard.
+        </p>
+        <div className="mt-6 space-y-2">
+          <Button asChild size="lg" className="w-full">
+            <Link href="/login">Go to sign in</Link>
+          </Button>
+          <Button
+            variant="ghost"
+            className="w-full"
+            onClick={() => {
+              setConfirmationEmail(null);
+              setFormError(null);
+            }}
+          >
+            Use a different email
+          </Button>
+        </div>
+        <p className="mt-4 text-[10.5px] leading-relaxed text-slate-muted">
+          The link can take a minute to arrive. Check your spam folder if you do
+          not see it.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-2xl border border-border bg-white p-6 shadow-[0_18px_45px_-35px_rgba(16,42,67,0.4)] sm:p-8">
