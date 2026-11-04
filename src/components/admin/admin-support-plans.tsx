@@ -176,7 +176,7 @@ function SupportPlanForm({ student }: { student: Student }) {
     setFullScholarship(String(student.supportPlans.fullScholarship));
   };
 
-  const save = () => {
+  const save = async () => {
     const oneTimeOptions = oneTime
       .split(",")
       .map((item) => Number(item.trim()))
@@ -199,12 +199,16 @@ function SupportPlanForm({ student }: { student: Student }) {
       toast.error("Monthly, yearly, and full scholarship amounts must be ৳100 or more.");
       return;
     }
-    updateSupportPlans(student.id, {
+    const result = await updateSupportPlans(student.id, {
       oneTimeOptions,
       monthly: monthlyAmount,
       yearly: yearlyAmount,
       fullScholarship: scholarshipAmount,
     });
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
     setOneTime(oneTimeOptions.join(", "));
     toast.success("Support plans updated.");
   };

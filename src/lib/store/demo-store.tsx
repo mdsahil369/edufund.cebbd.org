@@ -25,7 +25,6 @@ import type {
   Student,
   StudentSupportPlans,
 } from "@/types";
-import { students as initialStudents } from "@/lib/mock-data/students";
 import { donors as initialDonors } from "@/lib/mock-data/donors";
 import { donations as initialDonations } from "@/lib/mock-data/donations";
 import {
@@ -38,6 +37,16 @@ import {
 } from "@/lib/mock-data/settings";
 import { getFunding, generateId } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import {
+  createStudentAction,
+  deleteStudentAction,
+  listStudentsAction,
+  setStudentStatusAction,
+  setStudentSupportPlansAction,
+  setStudentVisibilityAction,
+  updateStudentAction,
+  type StudentActionResult,
+} from "@/app/admin/students/actions";
 
 const STORAGE_KEY = "edufund-demo-v2";
 
@@ -113,7 +122,8 @@ interface DemoDataState {
 function createInitialState(): DemoDataState {
   return {
     session: null,
-    students: initialStudents,
+    // Students are loaded from Supabase once a user is signed in.
+    students: [],
     donors: initialDonors,
     donations: initialDonations,
     conversations: initialConversations,
@@ -160,12 +170,21 @@ interface DemoContextValue extends DemoDataState {
     patch: Partial<Pick<Donor, "fullName" | "email" | "phone" | "address" | "bio" | "avatarUrl">>,
   ) => void;
   setShowNamePublicly: (value: boolean) => void;
-  addStudent: (student: Student) => void;
-  updateStudent: (id: string, patch: Partial<Student>) => void;
-  deleteStudent: (id: string) => void;
-  toggleStudentVisibility: (id: string) => void;
-  updateCampaignStatus: (id: string, status: CampaignStatus) => void;
-  updateSupportPlans: (studentId: string, plans: StudentSupportPlans) => void;
+  addStudent: (student: Student) => Promise<StudentActionResult>;
+  updateStudent: (
+    id: string,
+    patch: Partial<Student>,
+  ) => Promise<StudentActionResult>;
+  deleteStudent: (id: string) => Promise<StudentActionResult>;
+  toggleStudentVisibility: (id: string) => Promise<StudentActionResult>;
+  updateCampaignStatus: (
+    id: string,
+    status: CampaignStatus,
+  ) => Promise<StudentActionResult>;
+  updateSupportPlans: (
+    studentId: string,
+    plans: StudentSupportPlans,
+  ) => Promise<StudentActionResult>;
   updatePaymentSettings: (settings: PaymentSettings) => void;
   updateSiteSettings: (settings: SiteSettings) => void;
   resetDemoData: () => void;
@@ -178,9 +197,18 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DemoDataState>(createInitialState);
   const [hydrated, setHydrated] = useState(false);
 
+  const loadStudents = useCallback(async () => {
+    try {
+      const list = await listStudentsAction();
+      setState((previous) => ({ ...previous, students: list }));
+    } catch {
+      // Keep whatever is already loaded if the request fails.
+    }
+  }, []);
+
   const applyUser = useCallback((user: User | null) => {
     if (!user) {
-      setState((previous) => ({ ...previous, session: null }));
+      setState((previous) => ({ ...previous, session: null, students: [] }));
       return;
     }
 
@@ -220,8 +248,14 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         if (parsed.version === 2 && data) {
           // Hydrating from localStorage after mount is intentional: the server
           // has no access to it, so doing this during render would mismatch.
+          // Students are never restored from storage — they come from Supabase.
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setState((previous) => ({ ...previous, ...data, session: null }));
+          setState((previous) => ({
+            ...previous,
+            ...data,
+            students: [],
+            session: null,
+          }));
         }
       }
     } catch {
@@ -242,7 +276,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           const {
             data: { user },
           } = await supabase.auth.getUser();
-          if (active) applyUser(user);
+          if (!active) return;
+          applyUser(user);
+          if (user) await loadStudents();
         } catch {
           if (active) applyUser(null);
         } finally {
@@ -258,7 +294,9 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         // Supabase holds an internal lock while this callback runs. Defer the
         // state update so we never call other Supabase methods inside it.
         setTimeout(() => {
-          if (active) applyUser(session?.user ?? null);
+          if (!active) return;
+          applyUser(session?.user ?? null);
+          if (session?.user) void loadStudents();
         }, 0);
       });
 
@@ -273,14 +311,17 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       active = false;
       unsubscribe?.();
     };
-  }, [applyUser]);
+  }, [applyUser, loadStudents]);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ version: 2, data: { ...state, session: null } }),
+        JSON.stringify({
+          version: 2,
+          data: { ...state, session: null, students: [] },
+        }),
       );
     } catch {
       // Storage may be unavailable (private mode); the app still works.
@@ -305,6 +346,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         }
 
         applyUser(data.user);
+        await loadStudents();
         return { ok: true as const, role: roleFor(data.user) };
       } catch {
         return {
@@ -313,7 +355,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         };
       }
     },
-    [applyUser],
+    [applyUser, loadStudents],
   );
 
   const register = useCallback(
@@ -346,6 +388,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         }
 
         applyUser(data.user);
+        await loadStudents();
         return { ok: true as const, role: "donor" as const };
       } catch {
         return {
@@ -354,7 +397,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         };
       }
     },
-    [applyUser],
+    [applyUser, loadStudents],
   );
 
   const logout = useCallback(async () => {
@@ -364,7 +407,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore a missing configuration; local state is still cleared below.
     }
-    setState((previous) => ({ ...previous, session: null }));
+    setState((previous) => ({ ...previous, session: null, students: [] }));
     toast.success("You have been signed out.");
   }, []);
 
@@ -655,64 +698,117 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     [state.session],
   );
 
-  const addStudent = useCallback((student: Student) => {
-    setState((previous) => ({
-      ...previous,
-      students: [student, ...previous.students],
-    }));
-  }, []);
+  const addStudent = useCallback(
+    async (student: Student): Promise<StudentActionResult> => {
+      const result = await createStudentAction(student);
+      if (!result.ok) return result;
 
-  const updateStudent = useCallback((id: string, patch: Partial<Student>) => {
-    setState((previous) => ({
-      ...previous,
-      students: previous.students.map((student) =>
-        student.id === id ? { ...student, ...patch } : student,
-      ),
-    }));
-  }, []);
+      setState((previous) => ({
+        ...previous,
+        students: [student, ...previous.students],
+      }));
 
-  const deleteStudent = useCallback((id: string) => {
-    setState((previous) => ({
-      ...previous,
-      students: previous.students.filter((student) => student.id !== id),
-      donations: previous.donations.filter(
-        (donation) => donation.studentId !== id,
-      ),
-      conversations: previous.conversations.filter(
-        (conversation) => conversation.studentId !== id,
-      ),
-    }));
-  }, []);
+      return result;
+    },
+    [],
+  );
 
-  const toggleStudentVisibility = useCallback((id: string) => {
-    setState((previous) => ({
-      ...previous,
-      students: previous.students.map((student) =>
-        student.id === id
-          ? {
-              ...student,
-              visibility:
-                student.visibility === "published" ? "unpublished" : "published",
-            }
-          : student,
-      ),
-    }));
-  }, []);
+  const updateStudent = useCallback(
+    async (id: string, patch: Partial<Student>): Promise<StudentActionResult> => {
+      const existing = state.students.find((student) => student.id === id);
+      if (!existing) {
+        return { ok: false, error: "This student could not be found." };
+      }
+
+      const next: Student = { ...existing, ...patch, id };
+      const result = await updateStudentAction(id, next);
+      if (!result.ok) return result;
+
+      setState((previous) => ({
+        ...previous,
+        students: previous.students.map((student) =>
+          student.id === id ? next : student,
+        ),
+      }));
+
+      return result;
+    },
+    [state.students],
+  );
+
+  const deleteStudent = useCallback(
+    async (id: string): Promise<StudentActionResult> => {
+      const result = await deleteStudentAction(id);
+      if (!result.ok) return result;
+
+      setState((previous) => ({
+        ...previous,
+        students: previous.students.filter((student) => student.id !== id),
+        donations: previous.donations.filter(
+          (donation) => donation.studentId !== id,
+        ),
+        conversations: previous.conversations.filter(
+          (conversation) => conversation.studentId !== id,
+        ),
+      }));
+
+      return result;
+    },
+    [],
+  );
+
+  const toggleStudentVisibility = useCallback(
+    async (id: string): Promise<StudentActionResult> => {
+      const existing = state.students.find((student) => student.id === id);
+      if (!existing) {
+        return { ok: false, error: "This student could not be found." };
+      }
+
+      const visibility =
+        existing.visibility === "published" ? "unpublished" : "published";
+      const result = await setStudentVisibilityAction(id, visibility);
+      if (!result.ok) return result;
+
+      setState((previous) => ({
+        ...previous,
+        students: previous.students.map((student) =>
+          student.id === id ? { ...student, visibility } : student,
+        ),
+      }));
+
+      return result;
+    },
+    [state.students],
+  );
 
   const updateCampaignStatus = useCallback(
-    (id: string, status: CampaignStatus) => {
+    async (
+      id: string,
+      status: CampaignStatus,
+    ): Promise<StudentActionResult> => {
+      const result = await setStudentStatusAction(id, status);
+      if (!result.ok) return result;
+
       setState((previous) => ({
         ...previous,
         students: previous.students.map((student) =>
           student.id === id ? { ...student, campaignStatus: status } : student,
         ),
       }));
+
+      return result;
     },
     [],
   );
 
   const updateSupportPlans = useCallback(
-    (studentId: string, plans: StudentSupportPlans) => {
+    async (
+      studentId: string,
+      plans: StudentSupportPlans,
+    ): Promise<StudentActionResult> => {
+      const result = await setStudentSupportPlansAction(studentId, plans);
+      if (!result.ok) return result;
+
       setState((previous) => ({
         ...previous,
         students: previous.students.map((student) =>
@@ -721,6 +817,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             : student,
         ),
       }));
+
+      return result;
     },
     [],
   );
@@ -751,6 +849,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
       return {
         ...fresh,
+        students: previous.students,
         session: previous.session,
         donors: currentDonor ? [currentDonor, ...fresh.donors] : fresh.donors,
       };

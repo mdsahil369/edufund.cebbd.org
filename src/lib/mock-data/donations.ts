@@ -4,7 +4,37 @@ import type {
   DonationType,
   PaymentMethodId,
 } from "@/types";
-import { seedRaisedByStudentId, students } from "./students";
+
+/**
+ * Sample funding targets per student id.
+ *
+ * These amounts only exist to make the demo donation history look realistic
+ * while donations are still stored locally. Student records themselves live in
+ * Supabase.
+ */
+const fundingSeeds: { id: string; raised: number }[] = [
+  { id: "stu-01", raised: 52000 },
+  { id: "stu-02", raised: 31000 },
+  { id: "stu-03", raised: 74000 },
+  { id: "stu-04", raised: 20500 },
+  { id: "stu-05", raised: 41000 },
+  { id: "stu-06", raised: 76000 },
+  { id: "stu-07", raised: 22000 },
+  { id: "stu-08", raised: 49000 },
+  { id: "stu-09", raised: 18000 },
+  { id: "stu-10", raised: 66000 },
+  { id: "stu-11", raised: 33000 },
+  { id: "stu-12", raised: 12000 },
+  { id: "stu-13", raised: 58000 },
+  { id: "stu-14", raised: 27000 },
+  { id: "stu-15", raised: 44000 },
+  { id: "stu-16", raised: 9000 },
+  { id: "stu-17", raised: 68000 },
+  { id: "stu-18", raised: 46000 },
+  { id: "stu-19", raised: 15000 },
+  { id: "stu-20", raised: 82000 },
+  { id: "stu-21", raised: 0 },
+];
 
 const donorsCycle = [
   "donor-02",
@@ -35,8 +65,8 @@ function buildApprovedDonations(): Donation[] {
   const generated: Donation[] = [];
   let receipt = 1041;
 
-  students.forEach((student, index) => {
-    const target = seedRaisedByStudentId[student.id] ?? 0;
+  fundingSeeds.forEach((student, index) => {
+    const target = student.raised;
     if (target <= 0) return;
 
     const first = Math.round((target * 0.45) / 500) * 500;

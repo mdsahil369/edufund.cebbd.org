@@ -7,6 +7,9 @@ import { donations } from "@/lib/mock-data/donations";
 import { getFunding, formatBDT } from "@/lib/utils";
 import { toPublicStudents } from "@/lib/students";
 
+// Student data lives in Supabase and can change at any time.
+export const instant = false;
+
 export const metadata: Metadata = {
   title: "Student Archive",
   description:

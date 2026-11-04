@@ -53,6 +53,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useDemoData } from "@/lib/store/demo-store";
+import { createClient } from "@/lib/supabase/client";
 import { educationCategories, getCategoryName } from "@/lib/mock-data/categories";
 import type { CampaignStatus, Student } from "@/types";
 import {
@@ -81,6 +82,29 @@ const campaignStatuses: CampaignStatus[] = [
   "paused",
   "draft",
 ];
+
+const PHOTO_BUCKET = "student-photos";
+
+async function uploadStudentPhoto(file: File): Promise<string> {
+  const supabase = createClient();
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "jpg";
+  const path = `${crypto.randomUUID()}.${extension}`;
+
+  const { error } = await supabase.storage
+    .from(PHOTO_BUCKET)
+    .upload(path, file, {
+      cacheControl: "31536000",
+      contentType: file.type,
+      upsert: false,
+    });
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const { data } = supabase.storage.from(PHOTO_BUCKET).getPublicUrl(path);
+  return data.publicUrl;
+}
 
 const studentSchema = z.object({
   fullName: z.string().trim().min(2, "Enter the student's full name."),
@@ -453,8 +477,15 @@ export function AdminStudents() {
                       </span>
                       <Select
                         value={student.campaignStatus}
-                        onValueChange={(value) => {
-                          updateCampaignStatus(student.id, value as CampaignStatus);
+                        onValueChange={async (value) => {
+                          const result = await updateCampaignStatus(
+                            student.id,
+                            value as CampaignStatus,
+                          );
+                          if (!result.ok) {
+                            toast.error(result.error);
+                            return;
+                          }
                           toast.success("Campaign status updated.");
                         }}
                       >
@@ -523,8 +554,14 @@ export function AdminStudents() {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => {
-                              toggleStudentVisibility(student.id);
+                            onClick={async () => {
+                              const result = await toggleStudentVisibility(
+                                student.id,
+                              );
+                              if (!result.ok) {
+                                toast.error(result.error);
+                                return;
+                              }
                               toast.success(
                                 student.visibility === "published"
                                   ? "Student unpublished."
@@ -598,8 +635,14 @@ export function AdminStudents() {
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => {
-                              toggleStudentVisibility(student.id);
+                            onClick={async () => {
+                              const result = await toggleStudentVisibility(
+                                student.id,
+                              );
+                              if (!result.ok) {
+                                toast.error(result.error);
+                                return;
+                              }
                               toast.success(
                                 student.visibility === "published"
                                   ? "Student unpublished."
@@ -683,20 +726,28 @@ export function AdminStudents() {
                   : 0
               }
               onCancel={() => setFormOpen(false)}
-              onSave={(values, photoUrl) => {
+              onSave={async (values, photoUrl) => {
                 if (editing) {
-                  updateStudent(editing.id, {
+                  const result = await updateStudent(editing.id, {
                     ...values,
                     photoUrl,
                   });
+                  if (!result.ok) {
+                    toast.error(result.error);
+                    return;
+                  }
                   toast.success("Student updated.");
                 } else {
-                  addStudent({
+                  const result = await addStudent({
                     ...values,
                     id: generateId("stu"),
                     photoUrl,
                     createdAt: new Date().toISOString(),
                   });
+                  if (!result.ok) {
+                    toast.error(result.error);
+                    return;
+                  }
                   toast.success("Student created. Publish it when ready.");
                 }
                 setFormOpen(false);
@@ -729,9 +780,13 @@ export function AdminStudents() {
             </Button>
             <Button
               variant="destructive"
-              onClick={() => {
+              onClick={async () => {
                 if (!deleting) return;
-                deleteStudent(deleting.id);
+                const result = await deleteStudent(deleting.id);
+                if (!result.ok) {
+                  toast.error(result.error);
+                  return;
+                }
                 toast.success("Student deleted.");
                 setDeleting(null);
               }}
@@ -754,7 +809,7 @@ interface StudentFormProps {
   onSave: (
     values: Omit<Student, "id" | "createdAt" | "photoUrl">,
     photoUrl: string | undefined,
-  ) => void;
+  ) => void | Promise<void>;
 }
 
 function StudentForm({
@@ -765,6 +820,7 @@ function StudentForm({
   onSave,
 }: StudentFormProps) {
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(student?.photoUrl);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -793,15 +849,12 @@ function StudentForm({
       setPhotoError("Please choose an image smaller than 900 KB.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setPhotoError(null);
-      setPhotoUrl(typeof reader.result === "string" ? reader.result : undefined);
-    };
-    reader.readAsDataURL(file);
+    setPhotoError(null);
+    setPhotoFile(file);
+    setPhotoUrl(URL.createObjectURL(file));
   };
 
-  const onSubmit = handleSubmit((values) => {
+  const onSubmit = handleSubmit(async (values) => {
     const slugTaken = students.some(
       (item) => item.slug === values.slug && item.id !== student?.id,
     );
@@ -819,7 +872,17 @@ function StudentForm({
       ? Number(values.familyIncome.replace(/[^0-9]/g, ""))
       : undefined;
 
-    onSave(
+    let finalPhotoUrl = photoUrl;
+    if (photoFile) {
+      try {
+        finalPhotoUrl = await uploadStudentPhoto(photoFile);
+      } catch {
+        setPhotoError("Could not upload the photo. Please try again.");
+        return;
+      }
+    }
+
+    await onSave(
       {
         fullName: values.fullName,
         slug: values.slug,
@@ -861,7 +924,7 @@ function StudentForm({
           adminNotes: values.adminNotes || undefined,
         },
       },
-      photoUrl,
+      finalPhotoUrl,
     );
   });
 
@@ -932,7 +995,10 @@ function StudentForm({
                     variant="ghost"
                     size="icon-xs"
                     aria-label="Remove photo"
-                    onClick={() => setPhotoUrl(undefined)}
+                    onClick={() => {
+                      setPhotoUrl(undefined);
+                      setPhotoFile(null);
+                    }}
                   >
                     <X className="size-3.5" />
                   </Button>

@@ -18,6 +18,10 @@ import { donations } from "@/lib/mock-data/donations";
 import { getFunding } from "@/lib/utils";
 import { toPublicStudent } from "@/lib/students";
 
+// Featured students are read from Supabase on each request so admin changes
+// appear without a rebuild.
+export const instant = false;
+
 export const metadata: Metadata = {
   title: "EduFund CEBBD — Every student deserves a chance to dream",
   description:

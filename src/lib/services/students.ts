@@ -1,15 +1,40 @@
 import { donations } from "@/lib/mock-data/donations";
 import { educationCategories } from "@/lib/mock-data/categories";
-import { students } from "@/lib/mock-data/students";
+import { createPublicClient } from "@/lib/supabase/public";
+import { toStudent, type StudentRow } from "@/lib/supabase/students-mapper";
 import type { EducationCategory, Student, StudentQuery } from "@/types";
 import { getFunding } from "@/lib/utils";
 
 /**
  * Data-access layer for public student content.
  *
- * Every function is async so the mock implementation can be replaced with a
- * Supabase repository in Phase 2 without touching any UI component.
+ * Data comes from the `public_students` view in Supabase (published rows only,
+ * private columns excluded). Admin changes therefore appear on the public site
+ * immediately — no build step or redeploy needed.
  */
+
+async function loadPublishedStudents(): Promise<Student[]> {
+  try {
+    const supabase = createPublicClient();
+    const { data, error } = await supabase
+      .from("public_students")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("[students] Failed to load published students:", error.message);
+      return [];
+    }
+
+    return ((data ?? []) as StudentRow[]).map(toStudent);
+  } catch (error) {
+    console.error(
+      "[students] Supabase is not configured:",
+      error instanceof Error ? error.message : error,
+    );
+    return [];
+  }
+}
 
 export async function getPublishedStudents(
   query: StudentQuery = {},
@@ -24,7 +49,7 @@ export async function getPublishedStudents(
 
   const normalizedSearch = search.trim().toLowerCase();
 
-  let result = students.filter((student) => student.visibility === "published");
+  let result = await loadPublishedStudents();
 
   if (normalizedSearch) {
     result = result.filter((student) => {
@@ -81,12 +106,9 @@ export async function getPublishedStudents(
   return sorted;
 }
 
-export async function getAllStudents(): Promise<Student[]> {
-  return [...students];
-}
-
 export async function getFeaturedStudents(limit = 6): Promise<Student[]> {
-  return students
+  const published = await loadPublishedStudents();
+  return published
     .filter(
       (student) =>
         student.featured &&
@@ -97,15 +119,13 @@ export async function getFeaturedStudents(limit = 6): Promise<Student[]> {
 }
 
 export async function getStudentBySlug(slug: string): Promise<Student | null> {
-  return (
-    students.find(
-      (student) => student.slug === slug && student.visibility === "published",
-    ) ?? null
-  );
+  const published = await loadPublishedStudents();
+  return published.find((student) => student.slug === slug) ?? null;
 }
 
 export async function getStudentById(id: string): Promise<Student | null> {
-  return students.find((student) => student.id === id) ?? null;
+  const published = await loadPublishedStudents();
+  return published.find((student) => student.id === id) ?? null;
 }
 
 export async function getEducationCategories(): Promise<EducationCategory[]> {
@@ -115,16 +135,13 @@ export async function getEducationCategories(): Promise<EducationCategory[]> {
 }
 
 export async function getDistricts(): Promise<string[]> {
-  const published = students.filter(
-    (student) => student.visibility === "published",
-  );
+  const published = await loadPublishedStudents();
   return [...new Set(published.map((student) => student.district))].sort((a, b) =>
     a.localeCompare(b),
   );
 }
 
 export async function getPublishedStudentSlugs(): Promise<string[]> {
-  return students
-    .filter((student) => student.visibility === "published")
-    .map((student) => student.slug);
+  const published = await loadPublishedStudents();
+  return published.map((student) => student.slug);
 }

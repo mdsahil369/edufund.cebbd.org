@@ -30,7 +30,6 @@ import {
 } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
 import {
-  getPublishedStudentSlugs,
   getPublishedStudents,
   getStudentBySlug,
 } from "@/lib/services/students";
@@ -46,10 +45,9 @@ import {
 } from "@/lib/utils";
 import { toPublicStudent } from "@/lib/students";
 
-export async function generateStaticParams() {
-  const slugs = await getPublishedStudentSlugs();
-  return slugs.map((slug) => ({ slug }));
-}
+// Student slugs live in Supabase and can change at any time, so these pages are
+// rendered on demand instead of being pre-generated at build time.
+export const instant = false;
 
 export async function generateMetadata({
   params,

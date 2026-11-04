@@ -6,7 +6,6 @@ import { ChevronRight, LockKeyhole } from "lucide-react";
 import { DonationWizard } from "@/components/donations/donation-wizard";
 import { StudentAvatar } from "@/components/students/student-avatar";
 import {
-  getPublishedStudentSlugs,
   getStudentBySlug,
 } from "@/lib/services/students";
 import { getCategoryName } from "@/lib/mock-data/categories";
@@ -14,10 +13,9 @@ import { donations } from "@/lib/mock-data/donations";
 import { getFunding, formatBDT } from "@/lib/utils";
 import { toPublicStudent } from "@/lib/students";
 
-export async function generateStaticParams() {
-  const slugs = await getPublishedStudentSlugs();
-  return slugs.map((slug) => ({ slug }));
-}
+// Student slugs live in Supabase and can change at any time, so these pages are
+// rendered on demand instead of being pre-generated at build time.
+export const instant = false;
 
 export async function generateMetadata({
   params,
