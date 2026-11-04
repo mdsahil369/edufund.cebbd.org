@@ -1,9 +1,8 @@
-import { donations } from "@/lib/mock-data/donations";
 import { educationCategories } from "@/lib/mock-data/categories";
 import { createPublicClient } from "@/lib/supabase/public";
 import { toStudent, type StudentRow } from "@/lib/supabase/students-mapper";
+import { fundingForStudent, getFundingTotals } from "@/lib/services/funding";
 import type { EducationCategory, Student, StudentQuery } from "@/types";
-import { getFunding } from "@/lib/utils";
 
 /**
  * Data-access layer for public student content.
@@ -80,18 +79,24 @@ export async function getPublishedStudents(
 
   const sorted = [...result];
   switch (sort) {
-    case "most-funded":
+    case "most-funded": {
+      const totals = await getFundingTotals();
       sorted.sort(
         (a, b) =>
-          getFunding(b, donations).percent - getFunding(a, donations).percent,
+          fundingForStudent(b, totals).percent -
+          fundingForStudent(a, totals).percent,
       );
       break;
-    case "most-needed":
+    }
+    case "most-needed": {
+      const totals = await getFundingTotals();
       sorted.sort(
         (a, b) =>
-          getFunding(b, donations).remaining - getFunding(a, donations).remaining,
+          fundingForStudent(b, totals).remaining -
+          fundingForStudent(a, totals).remaining,
       );
       break;
+    }
     case "name-asc":
       sorted.sort((a, b) => a.fullName.localeCompare(b.fullName));
       break;

@@ -18,6 +18,7 @@ import { StatusPill, donationStatusTone } from "@/components/shared/status-pill"
 import { StatCard } from "@/components/shared/stat-card";
 import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,6 +28,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -44,10 +46,22 @@ import {
 } from "@/lib/utils";
 
 export function AdminDonors() {
-  const { hydrated, donors, donations, students } = useDemoData();
+  const {
+    hydrated,
+    donors,
+    donations,
+    students,
+    setDonorStatus,
+    saveDonorAdminNotes,
+  } = useDemoData();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("all");
-  const [selected, setSelected] = useState<Donor | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [notesDraft, setNotesDraft] = useState("");
+  const [savingStatus, setSavingStatus] = useState(false);
+  const [savingNotes, setSavingNotes] = useState(false);
+
+  const selected = donors.find((donor) => donor.id === selectedId) ?? null;
 
   if (!hydrated) {
     return (
@@ -97,6 +111,52 @@ export function AdminDonors() {
   const anonymousCount = donors.filter(
     (donor) => !donor.showNamePublicly,
   ).length;
+
+  const openDonor = (donor: Donor) => {
+    setSelectedId(donor.id);
+    setNotesDraft(donor.adminNotes ?? "");
+  };
+
+  const closeDonor = () => {
+    setSelectedId(null);
+    setNotesDraft("");
+  };
+
+  const toggleDonorStatus = async () => {
+    if (!selected || savingStatus) return;
+
+    const nextStatus =
+      selected.status === "active" ? "suspended" : "active";
+    setSavingStatus(true);
+    const result = await setDonorStatus(selected.id, nextStatus);
+    setSavingStatus(false);
+
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success(
+      nextStatus === "suspended"
+        ? "Donor suspended. They can no longer submit donations."
+        : "Donor reactivated. They can submit donations again.",
+    );
+  };
+
+  const saveNotes = async () => {
+    if (!selected || savingNotes) return;
+
+    setSavingNotes(true);
+    const result = await saveDonorAdminNotes(selected.id, notesDraft);
+    setSavingNotes(false);
+
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
+    toast.success("Admin note saved.");
+  };
 
   const selectedStats = selected
     ? donorStats.find((item) => item.donor.id === selected.id)
@@ -260,7 +320,7 @@ export function AdminDonors() {
                     <Button
                       variant="ghost"
                       size="xs"
-                      onClick={() => setSelected(donor)}
+                      onClick={() => openDonor(donor)}
                     >
                       View
                     </Button>
@@ -307,7 +367,7 @@ export function AdminDonors() {
                     variant="outline"
                     size="xs"
                     className="mt-2.5 w-full"
-                    onClick={() => setSelected(donor)}
+                    onClick={() => openDonor(donor)}
                   >
                     View donor
                   </Button>
@@ -319,8 +379,8 @@ export function AdminDonors() {
       </div>
 
       <Dialog
-        open={Boolean(selected)}
-        onOpenChange={(open) => !open && setSelected(null)}
+        open={Boolean(selectedId)}
+        onOpenChange={(open) => !open && closeDonor()}
       >
         <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-xl">
           {selected && selectedStats && (
@@ -407,6 +467,53 @@ export function AdminDonors() {
                 </p>
               )}
 
+              <div className="space-y-2.5 rounded-xl border border-border p-3">
+                <div className="flex flex-wrap items-start justify-between gap-2">
+                  <div>
+                    <p className="text-[11px] font-bold uppercase tracking-wider text-slate-muted">
+                      Admin controls
+                    </p>
+                    <p className="mt-1 text-[10.5px] leading-relaxed text-slate-muted">
+                      Suspending a donor blocks new donation submissions. Notes
+                      stay private to admins.
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={toggleDonorStatus}
+                    disabled={savingStatus}
+                    className={
+                      selected.status === "active"
+                        ? "border-red-200 text-red-700 hover:bg-red-50"
+                        : undefined
+                    }
+                  >
+                    {savingStatus
+                      ? "Saving…"
+                      : selected.status === "active"
+                        ? "Suspend donor"
+                        : "Reactivate donor"}
+                  </Button>
+                </div>
+                <Textarea
+                  rows={2}
+                  value={notesDraft}
+                  onChange={(event) => setNotesDraft(event.target.value)}
+                  placeholder="Internal note about this donor (never shown publicly)."
+                  aria-label="Admin note about this donor"
+                />
+                <div className="flex justify-end">
+                  <Button
+                    size="xs"
+                    onClick={saveNotes}
+                    disabled={savingNotes}
+                  >
+                    {savingNotes ? "Saving…" : "Save note"}
+                  </Button>
+                </div>
+              </div>
+
               <div>
                 <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-muted">
                   Donation history
@@ -460,7 +567,7 @@ export function AdminDonors() {
               </div>
 
               <div className="flex justify-end">
-                <Button variant="outline" onClick={() => setSelected(null)}>
+                <Button variant="outline" onClick={closeDonor}>
                   Close
                 </Button>
               </div>

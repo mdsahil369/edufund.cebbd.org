@@ -17,7 +17,9 @@ import type {
   Donation,
   DonationInput,
   Donor,
+  DonorStatus,
   FundingSummary,
+  FundingTotals,
   Message,
   PaymentSettings,
   Session,
@@ -25,8 +27,6 @@ import type {
   Student,
   StudentSupportPlans,
 } from "@/types";
-import { donors as initialDonors } from "@/lib/mock-data/donors";
-import { donations as initialDonations } from "@/lib/mock-data/donations";
 import {
   conversations as initialConversations,
   messages as initialMessages,
@@ -35,11 +35,25 @@ import {
   paymentSettings as initialPaymentSettings,
   siteSettings as initialSiteSettings,
 } from "@/lib/mock-data/settings";
-import { getFunding, generateId } from "@/lib/utils";
+import { generateId } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import {
+  loadDonorAccountAction,
+  setDonorPrivacyAction,
+  submitDonationAction,
+  updateDonorProfileAction,
+  type DonorActionResult,
+} from "@/app/dashboard/actions";
+import {
+  listDonorsForAdminAction,
+  reviewDonationAction,
+  setDonorStatusAction,
+  updateDonorAdminNotesAction,
+} from "@/app/admin/donors/actions";
 import {
   createStudentAction,
   deleteStudentAction,
+  listFundingSummariesAction,
   listStudentsAction,
   setStudentStatusAction,
   setStudentSupportPlansAction,
@@ -48,9 +62,19 @@ import {
   type StudentActionResult,
 } from "@/app/admin/students/actions";
 
-const STORAGE_KEY = "edufund-demo-v2";
+/**
+ * Donor profiles and donations live in Supabase. Messaging, payment settings
+ * and site settings are intentionally still local sample data (the client asked
+ * to keep the message system static for now).
+ */
+const STORAGE_KEY = "edufund-demo-v3";
 
 type AuthRole = "donor" | "admin";
+
+type PersistedData = Pick<
+  DemoDataState,
+  "conversations" | "messages" | "paymentSettings" | "siteSettings"
+>;
 
 function displayNameFor(user: User): string {
   const metadata = user.user_metadata ?? {};
@@ -66,24 +90,6 @@ function displayNameFor(user: User): string {
 
 function roleFor(user: User): AuthRole {
   return user.app_metadata?.role === "admin" ? "admin" : "donor";
-}
-
-function donorFromUser(user: User): Donor {
-  const metadata = user.user_metadata ?? {};
-  const phone =
-    typeof metadata.phone === "string" && metadata.phone.trim()
-      ? metadata.phone.trim()
-      : undefined;
-
-  return {
-    id: user.id,
-    fullName: displayNameFor(user),
-    email: user.email ?? "",
-    phone,
-    joinedAt: user.created_at ?? new Date().toISOString(),
-    status: "active",
-    showNamePublicly: false,
-  };
 }
 
 function authErrorMessage(message: string): string {
@@ -113,6 +119,7 @@ interface DemoDataState {
   students: Student[];
   donors: Donor[];
   donations: Donation[];
+  fundingSummaries: Record<string, FundingTotals>;
   conversations: Conversation[];
   messages: Message[];
   paymentSettings: PaymentSettings;
@@ -122,10 +129,11 @@ interface DemoDataState {
 function createInitialState(): DemoDataState {
   return {
     session: null,
-    // Students are loaded from Supabase once a user is signed in.
+    // Students, donors and donations are loaded from Supabase once signed in.
     students: [],
-    donors: initialDonors,
-    donations: initialDonations,
+    donors: [],
+    donations: [],
+    fundingSummaries: {},
     conversations: initialConversations,
     messages: initialMessages,
     paymentSettings: initialPaymentSettings,
@@ -140,8 +148,18 @@ interface RegisterInput {
   password: string;
 }
 
+interface DonorProfilePatch {
+  fullName?: string;
+  phone?: string | null;
+  address?: string | null;
+  bio?: string | null;
+  avatarUrl?: string | null;
+}
+
 interface DemoContextValue extends DemoDataState {
   hydrated: boolean;
+  /** True once the signed-in user's donor / donation data has been fetched. */
+  accountReady: boolean;
   unreadDonorCount: number;
   unreadAdminCount: number;
   login: (
@@ -156,8 +174,8 @@ interface DemoContextValue extends DemoDataState {
   }>;
   logout: () => Promise<void>;
   submitDonation: (input: DonationInput) => Promise<Donation>;
-  approveDonation: (id: string) => void;
-  rejectDonation: (id: string, note: string) => void;
+  approveDonation: (id: string) => Promise<DonorActionResult>;
+  rejectDonation: (id: string, note: string) => Promise<DonorActionResult>;
   startConversation: (
     studentId: string,
     body: string,
@@ -166,10 +184,16 @@ interface DemoContextValue extends DemoDataState {
   sendDonorMessage: (conversationId: string, body: string) => void;
   sendAdminReply: (conversationId: string, body: string) => void;
   markConversationRead: (conversationId: string, role: "donor" | "admin") => void;
-  updateDonorProfile: (
-    patch: Partial<Pick<Donor, "fullName" | "email" | "phone" | "address" | "bio" | "avatarUrl">>,
-  ) => void;
-  setShowNamePublicly: (value: boolean) => void;
+  updateDonorProfile: (patch: DonorProfilePatch) => Promise<DonorActionResult>;
+  setShowNamePublicly: (value: boolean) => Promise<DonorActionResult>;
+  setDonorStatus: (
+    donorId: string,
+    status: DonorStatus,
+  ) => Promise<DonorActionResult>;
+  saveDonorAdminNotes: (
+    donorId: string,
+    notes: string,
+  ) => Promise<DonorActionResult>;
   addStudent: (student: Student) => Promise<StudentActionResult>;
   updateStudent: (
     id: string,
@@ -196,66 +220,90 @@ const DemoContext = createContext<DemoContextValue | null>(null);
 export function DemoProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<DemoDataState>(createInitialState);
   const [hydrated, setHydrated] = useState(false);
+  const [accountReady, setAccountReady] = useState(false);
 
-  const loadStudents = useCallback(async () => {
+  const refreshFundingSummaries = useCallback(async () => {
+    const funding = await listFundingSummariesAction();
+    setState((previous) => ({ ...previous, fundingSummaries: funding }));
+  }, []);
+
+  const loadAccountData = useCallback(async (user: User) => {
+    const role = roleFor(user);
+
     try {
-      const list = await listStudentsAction();
-      setState((previous) => ({ ...previous, students: list }));
-    } catch {
-      // Keep whatever is already loaded if the request fails.
+      const [students, funding] = await Promise.all([
+        listStudentsAction(),
+        listFundingSummariesAction(),
+      ]);
+
+      if (role === "admin") {
+        const { donors, donations } = await listDonorsForAdminAction();
+        setState((previous) => ({
+          ...previous,
+          students,
+          fundingSummaries: funding,
+          donors,
+          donations,
+        }));
+      } else {
+        const { donor, donations } = await loadDonorAccountAction();
+        setState((previous) => ({
+          ...previous,
+          students,
+          fundingSummaries: funding,
+          donors: donor ? [donor] : [],
+          donations,
+        }));
+      }
+    } catch (error) {
+      console.error(
+        "[account] Failed to load Supabase data:",
+        error instanceof Error ? error.message : error,
+      );
+    } finally {
+      setAccountReady(true);
     }
   }, []);
 
   const applyUser = useCallback((user: User | null) => {
     if (!user) {
-      setState((previous) => ({ ...previous, session: null, students: [] }));
+      setState((previous) => ({
+        ...previous,
+        session: null,
+        students: [],
+        donors: [],
+        donations: [],
+        fundingSummaries: {},
+      }));
+      setAccountReady(false);
       return;
     }
 
-    const role = roleFor(user);
-    const name = displayNameFor(user);
-    const email = user.email ?? "";
+    const session: Session = {
+      role: roleFor(user),
+      donorId: roleFor(user) === "donor" ? user.id : undefined,
+      name: displayNameFor(user),
+      email: user.email ?? "",
+    };
 
-    setState((previous) => {
-      let donors = previous.donors;
-
-      if (role === "donor" && !donors.some((donor) => donor.id === user.id)) {
-        donors = [donorFromUser(user), ...donors];
-      }
-
-      const session: Session = {
-        role,
-        donorId: role === "donor" ? user.id : undefined,
-        name,
-        email,
-      };
-
-      return { ...previous, donors, session };
-    });
+    setState((previous) => ({ ...previous, session }));
   }, []);
 
-  // Restore the sample data from localStorage after mount. Supabase owns the
-  // auth session now, so the stored `session` field is intentionally ignored.
+  // Restore local sample data (messages + settings only) after mount.
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as {
           version?: number;
-          data?: Partial<DemoDataState>;
+          data?: Partial<PersistedData>;
         };
         const data = parsed.data;
-        if (parsed.version === 2 && data) {
+        if (parsed.version === 3 && data) {
           // Hydrating from localStorage after mount is intentional: the server
           // has no access to it, so doing this during render would mismatch.
-          // Students are never restored from storage — they come from Supabase.
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setState((previous) => ({
-            ...previous,
-            ...data,
-            students: [],
-            session: null,
-          }));
+          setState((previous) => ({ ...previous, ...data }));
         }
       }
     } catch {
@@ -278,9 +326,16 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           } = await supabase.auth.getUser();
           if (!active) return;
           applyUser(user);
-          if (user) await loadStudents();
+          if (user) {
+            await loadAccountData(user);
+          } else {
+            setAccountReady(true);
+          }
         } catch {
-          if (active) applyUser(null);
+          if (active) {
+            applyUser(null);
+            setAccountReady(true);
+          }
         } finally {
           if (active) setHydrated(true);
         }
@@ -296,7 +351,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         setTimeout(() => {
           if (!active) return;
           applyUser(session?.user ?? null);
-          if (session?.user) void loadStudents();
+          if (session?.user) void loadAccountData(session.user);
         }, 0);
       });
 
@@ -305,28 +360,38 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       // Missing configuration should not trap the UI in a loading state.
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setHydrated(true);
+      setAccountReady(true);
     }
 
     return () => {
       active = false;
       unsubscribe?.();
     };
-  }, [applyUser, loadStudents]);
+  }, [applyUser, loadAccountData]);
 
   useEffect(() => {
     if (!hydrated) return;
     try {
+      const data: PersistedData = {
+        conversations: state.conversations,
+        messages: state.messages,
+        paymentSettings: state.paymentSettings,
+        siteSettings: state.siteSettings,
+      };
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({
-          version: 2,
-          data: { ...state, session: null, students: [] },
-        }),
+        JSON.stringify({ version: 3, data }),
       );
     } catch {
       // Storage may be unavailable (private mode); the app still works.
     }
-  }, [state, hydrated]);
+  }, [
+    state.conversations,
+    state.messages,
+    state.paymentSettings,
+    state.siteSettings,
+    hydrated,
+  ]);
 
   const login = useCallback(
     async (email: string, password: string) => {
@@ -346,7 +411,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         }
 
         applyUser(data.user);
-        await loadStudents();
+        await loadAccountData(data.user);
         return { ok: true as const, role: roleFor(data.user) };
       } catch {
         return {
@@ -355,7 +420,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         };
       }
     },
-    [applyUser, loadStudents],
+    [applyUser, loadAccountData],
   );
 
   const register = useCallback(
@@ -388,7 +453,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         }
 
         applyUser(data.user);
-        await loadStudents();
+        await loadAccountData(data.user);
         return { ok: true as const, role: "donor" as const };
       } catch {
         return {
@@ -397,7 +462,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         };
       }
     },
-    [applyUser, loadStudents],
+    [applyUser, loadAccountData],
   );
 
   const logout = useCallback(async () => {
@@ -407,82 +472,65 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     } catch {
       // Ignore a missing configuration; local state is still cleared below.
     }
-    setState((previous) => ({ ...previous, session: null, students: [] }));
+    setState((previous) => ({
+      ...previous,
+      session: null,
+      students: [],
+      donors: [],
+      donations: [],
+      fundingSummaries: {},
+    }));
+    setAccountReady(false);
     toast.success("You have been signed out.");
   }, []);
 
-  const submitDonation = useCallback(
-    async (input: DonationInput) => {
-      await new Promise((resolve) => setTimeout(resolve, 700));
+  const submitDonation = useCallback(async (input: DonationInput) => {
+    const result = await submitDonationAction(input);
+    if (!result.ok) {
+      throw new Error(result.error);
+    }
 
-      const duplicate = state.donations.some(
-        (donation) =>
-          donation.transactionId.trim().toLowerCase() ===
-          input.transactionId.trim().toLowerCase(),
-      );
-      if (duplicate) {
-        throw new Error(
-          "This transaction ID has already been submitted. Please check your payment receipt and try again.",
-        );
-      }
+    setState((previous) => ({
+      ...previous,
+      donations: [result.donation, ...previous.donations],
+    }));
 
-      const donation: Donation = {
-        id: generateId("don"),
-        receiptNumber: `EF-2026-${Math.floor(3000 + Math.random() * 6900)}`,
-        donorId: input.donorId,
-        studentId: input.studentId,
-        type: input.type,
-        amount: input.amount,
-        method: input.method,
-        transactionId: input.transactionId.trim(),
-        senderReference: input.senderReference.trim(),
-        paymentDate: input.paymentDate,
-        message: input.message?.trim() || undefined,
-        status: "pending",
-        submittedAt: new Date().toISOString(),
-      };
+    return result.donation;
+  }, []);
+
+  const approveDonation = useCallback(
+    async (id: string): Promise<DonorActionResult> => {
+      const result = await reviewDonationAction(id, "approved");
+      if (!result.ok) return result;
 
       setState((previous) => ({
         ...previous,
-        donations: [donation, ...previous.donations],
+        donations: previous.donations.map((donation) =>
+          donation.id === id ? result.donation : donation,
+        ),
       }));
-
-      return donation;
+      await refreshFundingSummaries();
+      return { ok: true };
     },
-    [state.donations],
+    [refreshFundingSummaries],
   );
 
-  const approveDonation = useCallback((id: string) => {
-    setState((previous) => ({
-      ...previous,
-      donations: previous.donations.map((donation) =>
-        donation.id === id
-          ? {
-              ...donation,
-              status: "approved",
-              reviewedAt: new Date().toISOString(),
-              reviewNote: undefined,
-            }
-          : donation,
-      ),
-    }));
-  }, []);
+  const rejectDonation = useCallback(
+    async (id: string, note: string): Promise<DonorActionResult> => {
+      const result = await reviewDonationAction(id, "rejected", note);
+      if (!result.ok) return result;
 
-  const rejectDonation = useCallback((id: string, note: string) => {
-    setState((previous) => ({
-      ...previous,
-      donations: previous.donations.map((donation) =>
-        donation.id === id
-          ? {
-              ...donation,
-              status: "rejected",
-              reviewedAt: new Date().toISOString(),
-              reviewNote: note.trim() || "Payment could not be verified.",
-            }
-          : donation,
-      ),
-    }));
-  }, []);
+      setState((previous) => ({
+        ...previous,
+        donations: previous.donations.map((donation) =>
+          donation.id === id ? result.donation : donation,
+        ),
+      }));
+      await refreshFundingSummaries();
+      return { ok: true };
+    },
+    [refreshFundingSummaries],
+  );
 
   const startConversation = useCallback(
     async (studentId: string, body: string, subject?: string) => {
@@ -643,49 +691,60 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   );
 
   const updateDonorProfile = useCallback(
-    (
-      patch: Partial<
-        Pick<
-          Donor,
-          "fullName" | "email" | "phone" | "address" | "bio" | "avatarUrl"
-        >
-      >,
-    ) => {
+    async (patch: DonorProfilePatch): Promise<DonorActionResult> => {
       const donorId = state.session?.donorId;
-      if (!donorId) return;
+      if (!donorId) {
+        return { ok: false, error: "Please sign in again." };
+      }
+
+      const result = await updateDonorProfileAction(patch);
+      if (!result.ok) return result;
+
+      const donorPatch: Partial<Donor> = {};
+      if (patch.fullName !== undefined) {
+        donorPatch.fullName = patch.fullName.trim();
+      }
+      if (patch.phone !== undefined) {
+        donorPatch.phone = patch.phone?.trim() || undefined;
+      }
+      if (patch.address !== undefined) {
+        donorPatch.address = patch.address?.trim() || undefined;
+      }
+      if (patch.bio !== undefined) {
+        donorPatch.bio = patch.bio?.trim() || undefined;
+      }
+      if (patch.avatarUrl !== undefined) {
+        donorPatch.avatarUrl = patch.avatarUrl?.trim() || undefined;
+      }
+
       setState((previous) => ({
         ...previous,
         donors: previous.donors.map((donor) =>
-          donor.id === donorId ? { ...donor, ...patch } : donor,
+          donor.id === donorId ? { ...donor, ...donorPatch } : donor,
         ),
         session: previous.session
           ? {
               ...previous.session,
-              name: patch.fullName ?? previous.session.name,
-              email: patch.email ?? previous.session.email,
+              name: donorPatch.fullName ?? previous.session.name,
             }
           : previous.session,
       }));
 
-      // Keep the name in Supabase user metadata so it survives a refresh or a
-      // different browser. Email changes go through Supabase's own flow.
-      const metadata: Record<string, unknown> = {};
-      if (patch.fullName !== undefined) metadata.full_name = patch.fullName;
-      if (patch.phone !== undefined) metadata.phone = patch.phone;
-
-      if (Object.keys(metadata).length > 0) {
-        void createClient()
-          .auth.updateUser({ data: metadata })
-          .catch(() => undefined);
-      }
+      return { ok: true };
     },
     [state.session],
   );
 
   const setShowNamePublicly = useCallback(
-    (value: boolean) => {
+    async (value: boolean): Promise<DonorActionResult> => {
       const donorId = state.session?.donorId;
-      if (!donorId) return;
+      if (!donorId) {
+        return { ok: false, error: "Please sign in again." };
+      }
+
+      const result = await setDonorPrivacyAction(value);
+      if (!result.ok) return result;
+
       setState((previous) => ({
         ...previous,
         donors: previous.donors.map((donor) =>
@@ -694,8 +753,49 @@ export function DemoProvider({ children }: { children: ReactNode }) {
             : donor,
         ),
       }));
+
+      return { ok: true };
     },
     [state.session],
+  );
+
+  const setDonorStatus = useCallback(
+    async (
+      donorId: string,
+      status: DonorStatus,
+    ): Promise<DonorActionResult> => {
+      const result = await setDonorStatusAction(donorId, status);
+      if (!result.ok) return result;
+
+      setState((previous) => ({
+        ...previous,
+        donors: previous.donors.map((donor) =>
+          donor.id === donorId ? { ...donor, status } : donor,
+        ),
+      }));
+
+      return { ok: true };
+    },
+    [],
+  );
+
+  const saveDonorAdminNotes = useCallback(
+    async (donorId: string, notes: string): Promise<DonorActionResult> => {
+      const result = await updateDonorAdminNotesAction(donorId, notes);
+      if (!result.ok) return result;
+
+      setState((previous) => ({
+        ...previous,
+        donors: previous.donors.map((donor) =>
+          donor.id === donorId
+            ? { ...donor, adminNotes: notes.trim() || undefined }
+            : donor,
+        ),
+      }));
+
+      return { ok: true };
+    },
+    [],
   );
 
   const addStudent = useCallback(
@@ -840,39 +940,43 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     } catch {
       // ignore
     }
-    setState((previous) => {
-      const fresh = createInitialState();
-      const donorId = previous.session?.donorId;
-      const currentDonor = donorId
-        ? previous.donors.find((donor) => donor.id === donorId)
-        : undefined;
 
-      return {
-        ...fresh,
-        students: previous.students,
-        session: previous.session,
-        donors: currentDonor ? [currentDonor, ...fresh.donors] : fresh.donors,
-      };
-    });
-    toast.success("Sample data has been reset.");
+    // Donor and donation records live in Supabase, so only the local sample
+    // messages and settings are reset here.
+    setState((previous) => ({
+      ...previous,
+      conversations: initialConversations,
+      messages: initialMessages,
+      paymentSettings: initialPaymentSettings,
+      siteSettings: initialSiteSettings,
+    }));
+    toast.success("Sample messages and settings have been reset.");
   }, []);
 
   const fundingFor = useCallback(
     (studentId: string): FundingSummary => {
       const student = state.students.find((item) => item.id === studentId);
-      if (!student) {
-        return {
-          required: 0,
-          raised: 0,
-          remaining: 0,
-          percent: 0,
-          approvedDonationCount: 0,
-          supporterCount: 0,
-        };
-      }
-      return getFunding(student, state.donations);
+      const totals = state.fundingSummaries[studentId] ?? {
+        raised: 0,
+        approvedDonationCount: 0,
+        supporterCount: 0,
+      };
+      const required = student?.requiredAmount ?? 0;
+      const raised = totals.raised;
+
+      return {
+        required,
+        raised,
+        remaining: Math.max(0, required - raised),
+        percent:
+          required > 0
+            ? Math.min(100, Math.round((raised / required) * 100))
+            : 0,
+        approvedDonationCount: totals.approvedDonationCount,
+        supporterCount: totals.supporterCount,
+      };
     },
-    [state.students, state.donations],
+    [state.students, state.fundingSummaries],
   );
 
   const unreadDonorCount = useMemo(() => {
@@ -896,6 +1000,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     () => ({
       ...state,
       hydrated,
+      accountReady,
       unreadDonorCount,
       unreadAdminCount,
       login,
@@ -910,6 +1015,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       markConversationRead,
       updateDonorProfile,
       setShowNamePublicly,
+      setDonorStatus,
+      saveDonorAdminNotes,
       addStudent,
       updateStudent,
       deleteStudent,
@@ -924,6 +1031,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     [
       state,
       hydrated,
+      accountReady,
       unreadDonorCount,
       unreadAdminCount,
       login,
@@ -938,6 +1046,8 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       markConversationRead,
       updateDonorProfile,
       setShowNamePublicly,
+      setDonorStatus,
+      saveDonorAdminNotes,
       addStudent,
       updateStudent,
       deleteStudent,

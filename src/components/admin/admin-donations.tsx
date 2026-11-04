@@ -68,6 +68,7 @@ export function AdminDonations() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Donation | null>(null);
   const [reviewNote, setReviewNote] = useState("");
+  const [reviewing, setReviewing] = useState(false);
 
   const sorted = useMemo(
     () =>
@@ -139,22 +140,39 @@ export function AdminDonations() {
     setReviewNote(donation.reviewNote ?? "");
   };
 
-  const approve = () => {
-    if (!selected) return;
-    approveDonation(selected.id);
+  const approve = async () => {
+    if (!selected || reviewing) return;
+    setReviewing(true);
+    const result = await approveDonation(selected.id);
+    setReviewing(false);
+
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
     toast.success(
       `${formatBDT(selected.amount)} approved and added to the campaign total.`,
     );
     setSelected(null);
   };
 
-  const reject = () => {
-    if (!selected) return;
+  const reject = async () => {
+    if (!selected || reviewing) return;
     if (!reviewNote.trim()) {
       toast.error("Add a review note before rejecting a donation.");
       return;
     }
-    rejectDonation(selected.id, reviewNote.trim());
+
+    setReviewing(true);
+    const result = await rejectDonation(selected.id, reviewNote.trim());
+    setReviewing(false);
+
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
     toast.success("Donation rejected. The donor can see the review note.");
     setSelected(null);
   };
@@ -568,13 +586,14 @@ export function AdminDonations() {
                         variant="outline"
                         className="border-red-200 text-red-700 hover:bg-red-50"
                         onClick={reject}
+                        disabled={reviewing}
                       >
                         <XCircle className="size-4" />
                         Reject
                       </Button>
-                      <Button onClick={approve}>
+                      <Button onClick={approve} disabled={reviewing}>
                         <CheckCircle2 className="size-4" />
-                        Approve donation
+                        {reviewing ? "Saving…" : "Approve donation"}
                       </Button>
                     </div>
                   </>

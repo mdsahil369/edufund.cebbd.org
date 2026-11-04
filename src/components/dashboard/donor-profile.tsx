@@ -24,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useDemoData } from "@/lib/store/demo-store";
+import { createClient } from "@/lib/supabase/client";
 import type { Donor } from "@/types";
 import { formatDate } from "@/lib/utils";
 
@@ -54,9 +55,9 @@ const profileSchema = z.object({
 type ProfileValues = z.infer<typeof profileSchema>;
 
 export function DonorProfile() {
-  const { session, hydrated, donors } = useDemoData();
+  const { session, hydrated, accountReady, donors } = useDemoData();
 
-  if (!hydrated || !session) {
+  if (!hydrated || !accountReady || !session) {
     return (
       <div className="space-y-4">
         <div className="h-20 animate-pulse rounded-2xl bg-white" />
@@ -85,6 +86,7 @@ export function DonorProfile() {
 function ProfileForm({ donor }: { donor: Donor }) {
   const { updateDonorProfile } = useDemoData();
   const [avatar, setAvatar] = useState<string | undefined>(donor.avatarUrl);
+  const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const {
@@ -104,35 +106,67 @@ function ProfileForm({ donor }: { donor: Donor }) {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    updateDonorProfile({
+    const result = await updateDonorProfile({
       fullName: values.fullName,
-      email: values.email,
-      phone: values.phone?.trim() || undefined,
-      address: values.address?.trim() || undefined,
-      bio: values.bio?.trim() || undefined,
-      avatarUrl: avatar,
+      phone: values.phone?.trim() || null,
+      address: values.address?.trim() || null,
+      bio: values.bio?.trim() || null,
+      avatarUrl: avatar ?? null,
     });
+
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+
     reset(values);
     toast.success("Profile updated.");
   });
 
-  const handleFile = (file: File | undefined) => {
+  const handleFile = async (file: File | undefined) => {
     if (!file) return;
     if (!file.type.startsWith("image/")) {
       toast.error("Please choose an image file.");
       return;
     }
-    if (file.size > 800 * 1024) {
-      toast.error("Please choose an image smaller than 800 KB.");
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error("Please choose an image smaller than 2 MB.");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => {
-      setAvatar(typeof reader.result === "string" ? reader.result : undefined);
+
+    setUploading(true);
+    try {
+      const supabase = createClient();
+      const extension = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      // Files are stored under <donor id>/ so the storage policy only lets the
+      // donor write inside their own folder.
+      const path = `${donor.id}/avatar-${Date.now()}.${extension}`;
+
+      const { error } = await supabase.storage
+        .from("donor-avatars")
+        .upload(path, file, {
+          contentType: file.type,
+          cacheControl: "3600",
+          upsert: true,
+        });
+
+      if (error) throw error;
+
+      const { data } = supabase.storage
+        .from("donor-avatars")
+        .getPublicUrl(path);
+
+      setAvatar(data.publicUrl);
       toast.success("Photo ready. Save changes to apply it.");
-    };
-    reader.readAsDataURL(file);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Could not upload your photo. Please try again.",
+      );
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -155,10 +189,15 @@ function ProfileForm({ donor }: { donor: Donor }) {
               <button
                 type="button"
                 onClick={() => fileRef.current?.click()}
-                className="absolute -right-1 -bottom-1 inline-flex size-9 items-center justify-center rounded-full border-2 border-white bg-brand text-white shadow-md transition-colors hover:bg-brand-dark"
+                disabled={uploading}
+                className="absolute -right-1 -bottom-1 inline-flex size-9 items-center justify-center rounded-full border-2 border-white bg-brand text-white shadow-md transition-colors hover:bg-brand-dark disabled:opacity-70"
                 aria-label="Upload profile photo"
               >
-                <Camera className="size-4" />
+                {uploading ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Camera className="size-4" />
+                )}
               </button>
               <input
                 ref={fileRef}
@@ -181,8 +220,9 @@ function ProfileForm({ donor }: { donor: Donor }) {
                 size="xs"
                 className="flex-1"
                 onClick={() => fileRef.current?.click()}
+                disabled={uploading}
               >
-                Change photo
+                {uploading ? "Uploading…" : "Change photo"}
               </Button>
               {avatar && (
                 <Button
@@ -210,7 +250,7 @@ function ProfileForm({ donor }: { donor: Donor }) {
             <div className="flex items-center justify-between">
               <dt className="text-slate-muted">Donor ID</dt>
               <dd className="font-mono text-[10.5px] font-semibold text-ink">
-                {donor.id.toUpperCase()}
+                {donor.id.slice(0, 8).toUpperCase()}
               </dd>
             </div>
             <div className="flex items-center justify-between">
@@ -291,14 +331,19 @@ function ProfileForm({ donor }: { donor: Donor }) {
                   <Input
                     id="email"
                     type="email"
-                    className="pl-9"
+                    readOnly
+                    className="bg-muted/60 pl-9"
                     aria-invalid={Boolean(errors.email)}
                     {...register("email")}
                   />
                 </div>
-                {errors.email && (
+                {errors.email ? (
                   <p className="mt-1 text-[11px] text-red-600">
                     {errors.email.message}
+                  </p>
+                ) : (
+                  <p className="mt-1 text-[10.5px] text-slate-muted">
+                    This is your sign-in email. Contact CEBBD support to change it.
                   </p>
                 )}
               </div>
@@ -387,8 +432,8 @@ function ProfileForm({ donor }: { donor: Donor }) {
 
             <div className="rounded-lg border border-border bg-surface px-3.5 py-3 text-[11px] leading-relaxed text-slate-muted">
               <CheckCircle2 className="mr-1 inline size-3.5 text-emerald-600" />
-              Changing your email updates the address used to sign in to this
-              profile. Contact details are never exposed to students or the public.
+              Saved to your Supabase donor profile. Contact details are never
+              exposed to students or the public.
             </div>
 
             <div className="flex flex-col-reverse gap-2 border-t border-border pt-4 sm:flex-row sm:justify-end">

@@ -91,11 +91,14 @@ export interface Donor {
   phone?: string;
   avatarUrl?: string;
   joinedAt: string;
+  updatedAt?: string;
   status: DonorStatus;
   /** Hidden by default — public displays use "Anonymous Supporter" when false. */
   showNamePublicly: boolean;
   address?: string;
   bio?: string;
+  /** Admin-only internal note. Never rendered on donor or public pages. */
+  adminNotes?: string;
 }
 
 export interface Session {
@@ -136,6 +139,25 @@ export interface FundingSummary {
   percent: number;
   approvedDonationCount: number;
   supporterCount: number;
+}
+
+/** Verified totals per student, read from `public.student_funding_summary`. */
+export interface FundingTotals {
+  raised: number;
+  approvedDonationCount: number;
+  supporterCount: number;
+}
+
+/** A verified donation as exposed on public pages (donor name already masked). */
+export interface PublicSupporter {
+  id: ID;
+  studentId: ID;
+  name: string;
+  amount: number;
+  type: DonationType;
+  paymentDate: string;
+  submittedAt: string;
+  anonymous: boolean;
 }
 
 /* ------------------------------ Messaging ----------------------------- */

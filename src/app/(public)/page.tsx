@@ -14,8 +14,7 @@ import { Button } from "@/components/ui/button";
 import { getFeaturedStudents } from "@/lib/services/students";
 import { impactStats } from "@/lib/mock-data/stats";
 import { achievements } from "@/lib/mock-data/achievements";
-import { donations } from "@/lib/mock-data/donations";
-import { getFunding } from "@/lib/utils";
+import { fundingForStudent, getFundingTotals } from "@/lib/services/funding";
 import { toPublicStudent } from "@/lib/students";
 
 // Featured students are read from Supabase on each request so admin changes
@@ -30,10 +29,14 @@ export const metadata: Metadata = {
 };
 
 export default async function HomePage() {
-  const featured = (await getFeaturedStudents(6)).map(toPublicStudent);
+  const [students, totals] = await Promise.all([
+    getFeaturedStudents(6),
+    getFundingTotals(),
+  ]);
+  const featured = students.map(toPublicStudent);
   const heroStudent = featured[0];
   const heroFunding = heroStudent
-    ? getFunding(heroStudent, donations)
+    ? fundingForStudent(heroStudent, totals)
     : {
         required: 0,
         raised: 0,
@@ -71,7 +74,7 @@ export default async function HomePage() {
               <StudentCard
                 key={student.id}
                 student={student}
-                funding={getFunding(student, donations)}
+                funding={fundingForStudent(student, totals)}
               />
             ))}
           </div>

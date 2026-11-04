@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import {
   Eye,
@@ -18,10 +19,18 @@ import { useDemoData } from "@/lib/store/demo-store";
 import { formatBDT } from "@/lib/utils";
 
 export function DonorPrivacy() {
-  const { session, hydrated, donors, donations, students, setShowNamePublicly } =
-    useDemoData();
+  const {
+    session,
+    hydrated,
+    accountReady,
+    donors,
+    donations,
+    students,
+    setShowNamePublicly,
+  } = useDemoData();
+  const [savingPrivacy, setSavingPrivacy] = useState(false);
 
-  if (!hydrated || !session) {
+  if (!hydrated || !accountReady || !session) {
     return (
       <div className="space-y-4">
         <div className="h-20 animate-pulse rounded-2xl bg-white" />
@@ -92,8 +101,17 @@ export function DonorPrivacy() {
                 </span>
                 <Switch
                   checked={donor.showNamePublicly}
-                  onCheckedChange={(checked) => {
-                    setShowNamePublicly(checked);
+                  disabled={savingPrivacy}
+                  onCheckedChange={async (checked) => {
+                    setSavingPrivacy(true);
+                    const result = await setShowNamePublicly(checked);
+                    setSavingPrivacy(false);
+
+                    if (!result.ok) {
+                      toast.error(result.error);
+                      return;
+                    }
+
                     toast.success(
                       checked
                         ? "Your name will be shown publicly."

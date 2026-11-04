@@ -469,8 +469,8 @@ export function AdminOverview() {
 
       <div className="flex items-center gap-2 rounded-xl border border-dashed border-border bg-white px-4 py-3 text-[11px] text-slate-muted">
         <Users className="size-4 shrink-0" />
-        Changes you make here are saved in this browser and can be reset from
-        Site Settings.
+        Donor accounts, donations and campaign totals are stored in Supabase and
+        shared across every device.
         <Inbox className="ml-auto hidden size-4 sm:block" aria-hidden="true" />
       </div>
     </div>

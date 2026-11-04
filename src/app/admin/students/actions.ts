@@ -8,6 +8,7 @@ import {
 } from "@/lib/supabase/students-mapper";
 import type {
   CampaignStatus,
+  FundingTotals,
   Student,
   StudentSupportPlans,
   StudentVisibility,
@@ -76,6 +77,46 @@ export async function listStudentsAction(): Promise<Student[]> {
   }
 
   return ((data ?? []) as StudentRow[]).map(toStudent);
+}
+
+/**
+ * Verified totals for every campaign. Backed by the public
+ * `student_funding_summary` view (approved donations only).
+ */
+export async function listFundingSummariesAction(): Promise<
+  Record<string, FundingTotals>
+> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) return {};
+
+  const { data, error } = await supabase
+    .from("student_funding_summary")
+    .select("*");
+
+  if (error) {
+    console.error("[funding] Failed to load totals:", error.message);
+    return {};
+  }
+
+  return (
+    (data ?? []) as {
+      student_id: string;
+      raised: number | string;
+      approved_donation_count: number | string;
+      supporter_count: number | string;
+    }[]
+  ).reduce<Record<string, FundingTotals>>((totals, row) => {
+    totals[row.student_id] = {
+      raised: Number(row.raised) || 0,
+      approvedDonationCount: Number(row.approved_donation_count) || 0,
+      supporterCount: Number(row.supporter_count) || 0,
+    };
+    return totals;
+  }, {});
 }
 
 export async function createStudentAction(

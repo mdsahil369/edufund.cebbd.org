@@ -33,15 +33,17 @@ import {
   getPublishedStudents,
   getStudentBySlug,
 } from "@/lib/services/students";
-import { getCategoryById, getCategoryName } from "@/lib/mock-data/categories";
-import { donations } from "@/lib/mock-data/donations";
-import { getDonorById } from "@/lib/mock-data/donors";
+import { getCategoryById } from "@/lib/mock-data/categories";
+import {
+  fundingForStudent,
+  getFundingTotals,
+  getRecentSupporters,
+} from "@/lib/services/funding";
 import {
   campaignStatusLabels,
   donationTypeLabels,
   formatBDT,
   formatDate,
-  getFunding,
 } from "@/lib/utils";
 import { toPublicStudent } from "@/lib/students";
 
@@ -85,30 +87,12 @@ export default async function StudentProfilePage({
   if (!student) notFound();
 
   const category = getCategoryById(student.categoryId);
-  const funding = getFunding(student, donations);
+  const [totals, recentSupporters] = await Promise.all([
+    getFundingTotals(),
+    getRecentSupporters(student.id, 5),
+  ]);
+  const funding = fundingForStudent(student, totals);
   const firstName = student.fullName.split(" ")[0];
-
-  const approvedDonations = donations
-    .filter(
-      (donation) =>
-        donation.studentId === student.id && donation.status === "approved",
-    )
-    .sort(
-      (a, b) =>
-        new Date(b.submittedAt).getTime() - new Date(a.submittedAt).getTime(),
-    );
-
-  const recentSupporters = approvedDonations.slice(0, 5).map((donation) => {
-    const donor = getDonorById(donation.donorId);
-    return {
-      id: donation.id,
-      name: donor?.showNamePublicly ? donor.fullName : "Anonymous Supporter",
-      amount: donation.amount,
-      date: donation.paymentDate,
-      type: donation.type,
-      anonymous: !donor?.showNamePublicly,
-    };
-  });
 
   const relatedStudents = (await getPublishedStudents({ categoryId: student.categoryId }))
     .filter((item) => item.id !== student.id)
@@ -474,7 +458,7 @@ export default async function StudentProfilePage({
                       </p>
                       <p className="text-[11px] text-slate-muted">
                         {donationTypeLabels[supporter.type]} ·{" "}
-                        {formatDate(supporter.date, "d MMM yyyy")}
+                        {formatDate(supporter.paymentDate, "d MMM yyyy")}
                       </p>
                     </div>
                     <span className="text-[13px] font-bold text-brand-dark">
@@ -593,7 +577,7 @@ export default async function StudentProfilePage({
                 <StudentCard
                   key={related.id}
                   student={related}
-                  funding={getFunding(related, donations)}
+                  funding={fundingForStudent(related, totals)}
                 />
               ))}
             </div>

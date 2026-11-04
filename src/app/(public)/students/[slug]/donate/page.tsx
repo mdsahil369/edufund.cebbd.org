@@ -9,8 +9,8 @@ import {
   getStudentBySlug,
 } from "@/lib/services/students";
 import { getCategoryName } from "@/lib/mock-data/categories";
-import { donations } from "@/lib/mock-data/donations";
-import { getFunding, formatBDT } from "@/lib/utils";
+import { fundingForStudent, getFundingTotals } from "@/lib/services/funding";
+import { formatBDT } from "@/lib/utils";
 import { toPublicStudent } from "@/lib/students";
 
 // Student slugs live in Supabase and can change at any time, so these pages are
@@ -48,7 +48,8 @@ export default async function DonatePage({
   if (!student) notFound();
 
   const publicStudent = toPublicStudent(student);
-  const funding = getFunding(student, donations);
+  const totals = await getFundingTotals();
+  const funding = fundingForStudent(student, totals);
   const categoryName = getCategoryName(student.categoryId);
 
   return (

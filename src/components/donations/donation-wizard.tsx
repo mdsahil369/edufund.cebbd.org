@@ -244,9 +244,8 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
   );
   const [submitted, setSubmitted] = useState<Donation | null>(null);
 
-  // Demo clock: the seeded dataset is set in October 2026. Replace with the
-  // current server date when the Supabase integration lands.
-  const today = "2026-10-31";
+  // The payment date cannot be in the future. Computed once per mount.
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const form = useForm<DonationFormValues>({
     resolver: zodResolver(donationFormSchema),

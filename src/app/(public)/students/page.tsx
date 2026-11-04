@@ -3,8 +3,8 @@ import Link from "next/link";
 import { ChevronRight, GraduationCap, ShieldCheck, Users } from "lucide-react";
 import { StudentDirectory } from "@/components/students/student-directory";
 import { getPublishedStudents, getEducationCategories, getDistricts } from "@/lib/services/students";
-import { donations } from "@/lib/mock-data/donations";
-import { getFunding, formatBDT } from "@/lib/utils";
+import { fundingForStudent, getFundingTotals } from "@/lib/services/funding";
+import { formatBDT } from "@/lib/utils";
 import { toPublicStudents } from "@/lib/students";
 
 // Student data lives in Supabase and can change at any time.
@@ -23,15 +23,19 @@ export const metadata: Metadata = {
 };
 
 export default async function StudentsPage() {
-  const [students, categories, districts] = await Promise.all([
+  const [students, categories, districts, totals] = await Promise.all([
     getPublishedStudents(),
     getEducationCategories(),
     getDistricts(),
+    getFundingTotals(),
   ]);
 
   const publicStudents = toPublicStudents(students);
   const fundingById = Object.fromEntries(
-    publicStudents.map((student) => [student.id, getFunding(student, donations)]),
+    publicStudents.map((student) => [
+      student.id,
+      fundingForStudent(student, totals),
+    ]),
   );
   const totalRemaining = Object.values(fundingById).reduce(
     (total, funding) => total + funding.remaining,
