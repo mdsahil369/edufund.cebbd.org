@@ -4,7 +4,7 @@ import { ChevronRight, GraduationCap, ShieldCheck, Users } from "lucide-react";
 import { StudentDirectory } from "@/components/students/student-directory";
 import { getPublishedStudents, getEducationCategories, getDistricts } from "@/lib/services/students";
 import { fundingForStudent, getFundingTotals } from "@/lib/services/funding";
-import { formatBDT } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 import { toPublicStudents } from "@/lib/students";
 
 // Student data lives in Supabase and can change at any time.
@@ -88,7 +88,7 @@ export default async function StudentsPage() {
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="size-4 text-brand" aria-hidden="true" />
               <strong className="font-semibold text-ink">
-                {formatBDT(totalRemaining)}
+                {formatMoney(totalRemaining)}
               </strong>{" "}
               still needed across all campaigns
             </span>

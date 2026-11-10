@@ -14,8 +14,6 @@ import { AchievementsGallery } from "@/components/home/achievements-gallery";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
 import { achievements } from "@/lib/mock-data/achievements";
-import { impactStats } from "@/lib/mock-data/stats";
-import { formatCompactBDT, formatNumber } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Achievements",
@@ -60,18 +58,18 @@ export default function AchievementsPage() {
             {[
               {
                 icon: GraduationCap,
-                value: `${formatNumber(impactStats.studentsSupported)}+`,
-                label: "Students supported",
+                value: "18",
+                label: "Students shortlisted",
               },
               {
                 icon: Wallet,
-                value: formatCompactBDT(impactStats.fundsRaised),
-                label: "Verified funds raised",
+                value: "Diploma",
+                label: "Four-year engineering programme",
               },
               {
                 icon: Landmark,
-                value: "64",
-                label: "Districts reached",
+                value: "100%",
+                label: "Fees paid to institutes",
               },
               {
                 icon: Sparkles,

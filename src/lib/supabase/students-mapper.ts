@@ -32,6 +32,7 @@ export interface StudentRow {
   featured: boolean;
   support_one_time: number[] | null;
   support_monthly: number | string;
+  support_monthly_options?: number[] | null;
   support_yearly: number | string;
   support_full_scholarship: number | string;
   private_mobile?: string | null;
@@ -104,6 +105,9 @@ export function toStudent(row: StudentRow): Student {
         toNumber(amount),
       ),
       monthly: toNumber(row.support_monthly),
+      monthlyOptions: (row.support_monthly_options ?? []).map((amount) =>
+        toNumber(amount),
+      ),
       yearly: toNumber(row.support_yearly),
       fullScholarship: toNumber(row.support_full_scholarship),
     },
@@ -152,6 +156,7 @@ export function toStudentRow(student: Student) {
     featured: student.featured,
     support_one_time: student.supportPlans.oneTimeOptions,
     support_monthly: student.supportPlans.monthly,
+    support_monthly_options: student.supportPlans.monthlyOptions,
     support_yearly: student.supportPlans.yearly,
     support_full_scholarship: student.supportPlans.fullScholarship,
     private_mobile: student.privateInfo.mobile,

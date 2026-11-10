@@ -7,7 +7,7 @@ import {
   type DonationRow,
   type DonorRow,
 } from "@/lib/supabase/donors-mapper";
-import type { Donation, Donor, DonorStatus } from "@/types";
+import type { Donation, DonationType, Donor, DonorStatus, PaymentMethodId } from "@/types";
 
 export type AdminDonorResult = { ok: true } | { ok: false; error: string };
 
@@ -97,6 +97,108 @@ export async function setDonorStatusAction(
   }
 
   return { ok: true };
+}
+
+const donationTypes: DonationType[] = [
+  "one-time",
+  "monthly",
+  "yearly",
+  "full-scholarship",
+];
+const donationMethods: PaymentMethodId[] = [
+  "bank-transfer",
+  "bkash",
+  "nagad",
+  "card",
+];
+
+/**
+ * Record a donation the team received personally (bank, bKash, or an
+ * international transfer). Approved rows count toward the campaign immediately.
+ */
+export async function createManualDonationAction(input: {
+  donorId: string;
+  studentId: string;
+  type: DonationType;
+  amount: number;
+  method: PaymentMethodId;
+  transactionId?: string;
+  senderReference?: string;
+  paymentDate?: string;
+  message?: string;
+  status?: "pending" | "approved";
+}): Promise<AdminDonationResult> {
+  const { supabase, user, error } = await requireAdmin();
+  if (!supabase || !user) {
+    return { ok: false, error: error ?? UNAUTHORISED };
+  }
+
+  if (!input.donorId) {
+    return { ok: false, error: "Choose the donor this payment belongs to." };
+  }
+  if (!input.studentId) {
+    return { ok: false, error: "Choose the student this donation supports." };
+  }
+  if (!donationTypes.includes(input.type)) {
+    return { ok: false, error: "Choose a valid support type." };
+  }
+  if (!donationMethods.includes(input.method)) {
+    return { ok: false, error: "Choose a valid payment method." };
+  }
+
+  const amount = Number(input.amount);
+  if (!Number.isFinite(amount) || amount < 1) {
+    return { ok: false, error: "Enter a donation amount greater than zero." };
+  }
+
+  const paymentDate = input.paymentDate?.trim() || new Date().toISOString().slice(0, 10);
+  if (Number.isNaN(Date.parse(paymentDate))) {
+    return { ok: false, error: "Enter a valid payment date." };
+  }
+
+  const status = input.status === "pending" ? "pending" : "approved";
+  const transactionId =
+    input.transactionId?.trim() ||
+    `MANUAL-${Date.now().toString(36).toUpperCase()}${Math.random()
+      .toString(36)
+      .slice(2, 5)
+      .toUpperCase()}`;
+  const senderReference =
+    input.senderReference?.trim() || "Manual entry by CEBBD admin";
+
+  const { data, error: insertError } = await supabase
+    .from("donations")
+    .insert({
+      donor_id: input.donorId,
+      student_id: input.studentId,
+      type: input.type,
+      amount,
+      method: input.method,
+      transaction_id: transactionId,
+      sender_reference: senderReference,
+      payment_date: paymentDate,
+      message: input.message?.trim() || null,
+      status,
+      reviewed_at: status === "approved" ? new Date().toISOString() : null,
+      reviewed_by: user.id,
+      review_note:
+        status === "approved" ? "Recorded manually by CEBBD admin" : null,
+    })
+    .select("*")
+    .single();
+
+  if (insertError || !data) {
+    console.error(
+      "[admin/donations] Manual insert failed:",
+      insertError?.message ?? "No row returned",
+    );
+    if (insertError?.message.toLowerCase().includes("donations_transaction_id_key")) {
+      return { ok: false, error: "This transaction ID has already been used." };
+    }
+    return { ok: false, error: "Could not add this donation. Please try again." };
+  }
+
+  return { ok: true, donation: toDonation(data as DonationRow) };
 }
 
 export async function updateDonorAdminNotesAction(

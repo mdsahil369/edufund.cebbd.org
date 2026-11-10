@@ -1,9 +1,12 @@
 import type { EducationCategory } from "@/types";
 
 /**
- * Education categories are data-driven. Adding a category here (or later in
- * Supabase) automatically makes it available in the public archive filters and
- * the admin student form — no UI changes required.
+ * Fallback education categories.
+ *
+ * Supabase (`public.education_categories`) is the real source: the admin can add
+ * categories and hide/show them there. This static list is only used when the
+ * database is unreachable, so the public site keeps working. It mirrors the
+ * seeded rows — University Admission and Higher Education are hidden for now.
  */
 export const educationCategories: EducationCategory[] = [
   {
@@ -22,7 +25,7 @@ export const educationCategories: EducationCategory[] = [
     description:
       "Support for admission fees, preparation, and the first year of undergraduate study.",
     order: 2,
-    active: true,
+    active: false,
   },
   {
     id: "cat-higher",
@@ -31,12 +34,23 @@ export const educationCategories: EducationCategory[] = [
     description:
       "Continuing support for students already enrolled in degree programmes who are at risk of dropping out.",
     order: 3,
-    active: true,
+    active: false,
   },
 ];
 
+// Categories loaded from Supabase are cached here for synchronous label lookups
+// in components that cannot await (student cards, admin tables).
+let runtimeCategories: EducationCategory[] | null = null;
+
+export function setRuntimeCategories(categories: EducationCategory[]) {
+  runtimeCategories = categories;
+}
+
 export function getCategoryById(id: string) {
-  return educationCategories.find((category) => category.id === id);
+  return (
+    runtimeCategories?.find((category) => category.id === id) ??
+    educationCategories.find((category) => category.id === id)
+  );
 }
 
 export function getCategoryName(id: string) {

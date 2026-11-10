@@ -25,7 +25,7 @@ import { useDemoData } from "@/lib/store/demo-store";
 import {
   donationStatusLabels,
   donationTypeLabels,
-  formatBDT,
+  formatMoney,
   timeAgo,
 } from "@/lib/utils";
 
@@ -160,7 +160,7 @@ export function AdminOverview() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Verified funds raised"
-          value={formatBDT(totalRaised)}
+          value={formatMoney(totalRaised)}
           icon={Wallet}
           hint={`${approved.length} approved donations`}
           tone="brand"
@@ -171,7 +171,7 @@ export function AdminOverview() {
           icon={Clock3}
           hint={
             pending.length > 0
-              ? `${formatBDT(pending.reduce((sum, donation) => sum + donation.amount, 0))} awaiting verification`
+              ? `${formatMoney(pending.reduce((sum, donation) => sum + donation.amount, 0))} awaiting verification`
               : "All submissions reviewed"
           }
         />
@@ -220,7 +220,7 @@ export function AdminOverview() {
           <div className="mt-5">
             <MethodDonut
               centerLabel="Verified"
-              centerValue={formatBDT(totalRaised)}
+              centerValue={formatMoney(totalRaised)}
               slices={[
                 {
                   label: "bKash",
@@ -292,7 +292,7 @@ export function AdminOverview() {
                   </div>
                   <div className="text-right">
                     <p className="text-[12.5px] font-bold text-ink">
-                      {formatBDT(donation.amount)}
+                      {formatMoney(donation.amount)}
                     </p>
                     <StatusPill
                       tone={donationStatusTone(donation.status)}
@@ -347,7 +347,7 @@ export function AdminOverview() {
                           {student?.fullName ?? "Student"}
                         </p>
                         <p className="text-[10px] text-slate-muted">
-                          {donation.receiptNumber} · {formatBDT(donation.amount)}
+                          {donation.receiptNumber} · {formatMoney(donation.amount)}
                         </p>
                       </div>
                       <Button asChild size="xs" variant="outline">
@@ -446,7 +446,7 @@ export function AdminOverview() {
               </div>
               <div className="mt-3 flex items-center justify-between text-[10.5px]">
                 <span className="text-slate-muted">
-                  {formatBDT(funding.raised)}
+                  {formatMoney(funding.raised)}
                 </span>
                 <span className="font-bold text-brand-dark">
                   {funding.percent}%
@@ -459,7 +459,7 @@ export function AdminOverview() {
                 />
               </div>
               <p className="mt-1.5 text-[9.5px] text-slate-muted">
-                of {formatBDT(funding.required)} · {funding.supporterCount}{" "}
+                of {formatMoney(funding.required)} · {funding.supporterCount}{" "}
                 supporters
               </p>
             </div>

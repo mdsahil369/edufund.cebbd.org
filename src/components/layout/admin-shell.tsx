@@ -2,9 +2,11 @@
 
 import type { ReactNode } from "react";
 import {
+  FolderTree,
   GraduationCap,
   HandCoins,
   HeartHandshake,
+  Inbox,
   Landmark,
   LayoutDashboard,
   MessageSquare,
@@ -25,6 +27,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
     { href: "/admin", label: "Overview", icon: LayoutDashboard, exact: true },
     { href: "/admin/students", label: "Students", icon: GraduationCap },
     {
+      href: "/admin/categories",
+      label: "Categories",
+      icon: FolderTree,
+    },
+    {
       href: "/admin/donations",
       label: "Donations",
       icon: HandCoins,
@@ -35,6 +42,11 @@ export function AdminShell({ children }: { children: ReactNode }) {
       label: "Messages",
       icon: MessageSquare,
       badge: unreadAdminCount,
+    },
+    {
+      href: "/admin/inbox",
+      label: "Contact Inbox",
+      icon: Inbox,
     },
     { href: "/admin/donors", label: "Donors", icon: HeartHandshake },
     {

@@ -256,7 +256,7 @@ const sections: LegalSection[] = [
         <p>
           For privacy questions or requests, contact the CEBBD team through the{" "}
           <Link href="/contact">contact form</Link> or email{" "}
-          <a href="mailto:hello@cebbd.org">hello@cebbd.org</a>.
+          <a href="mailto:info@cebbd.org">info@cebbd.org</a>.
         </p>
         <p>
           Community Empowerment Bangladesh, House 12, Road 5, Gulshan 1, Dhaka 1212,

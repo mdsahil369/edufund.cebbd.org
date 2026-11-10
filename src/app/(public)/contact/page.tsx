@@ -165,8 +165,8 @@ export default function ContactPage() {
 
             <div className="rounded-2xl border border-dashed border-border bg-white p-4 text-[10.5px] leading-relaxed text-slate-muted">
               <MessageSquare className="mb-1 size-3.5 text-brand" />
-              The form records a success state locally and does not send email
-              yet.
+              Every message is stored securely and reviewed by the CEBBD team. We
+              reply by email, usually within one business day.
             </div>
           </aside>
         </div>

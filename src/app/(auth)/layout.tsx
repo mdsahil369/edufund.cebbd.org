@@ -1,8 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ArrowLeft, BadgeCheck, Quote, ShieldCheck, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  HeartHandshake,
+  LayoutDashboard,
+  ShieldCheck,
+} from "lucide-react";
 import { Logo } from "@/components/brand/logo";
-import { StudentAvatar } from "@/components/students/student-avatar";
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
   return (
@@ -34,37 +39,41 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             finish their education with dignity, transparency, and care.
           </p>
 
-          <figure className="mt-8 rounded-2xl border border-white/10 bg-white/[0.07] p-5 backdrop-blur-sm">
-            <Quote className="size-6 text-emerald-200/50" aria-hidden="true" />
-            <blockquote className="mt-2 text-[13px] leading-relaxed text-white/80">
-              “I can see exactly where my support goes. The CEBBD team verifies
-              every payment and shares updates — it makes giving feel personal
-              and safe.”
-            </blockquote>
-            <figcaption className="mt-4 flex items-center gap-3">
-              <StudentAvatar name="Ayesha Rahman" size="sm" />
-              <div>
-                <p className="text-[12.5px] font-semibold text-white">
-                  Ayesha Rahman
-                </p>
-                <p className="text-[10.5px] text-white/50">
-                  Monthly supporter
-                </p>
-              </div>
-            </figcaption>
-          </figure>
+          <ul className="mt-8 space-y-3 rounded-2xl border border-white/10 bg-white/[0.07] p-5 backdrop-blur-sm">
+            {[
+              "Choose a verified student and see their full support options.",
+              "Pay by bKash, bank transfer, or international card/remittance.",
+              "Follow every donation from pending to approved in your dashboard.",
+            ].map((item) => (
+              <li
+                key={item}
+                className="flex items-start gap-2.5 text-[12.5px] leading-relaxed text-white/80"
+              >
+                <BadgeCheck
+                  className="mt-0.5 size-4 shrink-0 text-emerald-200/80"
+                  aria-hidden="true"
+                />
+                {item}
+              </li>
+            ))}
+          </ul>
+          <p className="mt-4 text-[11.5px] leading-relaxed text-white/50">
+            No card details are collected. Support is verified manually by the
+            CEBBD finance team before it counts.
+          </p>
         </div>
 
         <div className="relative grid grid-cols-3 gap-4 border-t border-white/10 pt-6">
           {[
-            { icon: Users, value: "1,200+", label: "Students supported" },
-            { icon: BadgeCheck, value: "64", label: "Districts reached" },
-            { icon: ShieldCheck, value: "100%", label: "Manual verification" },
+            { icon: HeartHandshake, label: "Sponsor a student" },
+            { icon: LayoutDashboard, label: "Track every donation" },
+            { icon: ShieldCheck, label: "Manual verification" },
           ].map((item) => (
             <div key={item.label}>
               <item.icon className="size-4 text-emerald-200/70" />
-              <p className="mt-2 text-lg font-bold text-white">{item.value}</p>
-              <p className="text-[10.5px] text-white/50">{item.label}</p>
+              <p className="mt-2 text-[11.5px] leading-snug font-semibold text-white">
+                {item.label}
+              </p>
             </div>
           ))}
         </div>

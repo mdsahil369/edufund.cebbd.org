@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { useDemoData } from "@/lib/store/demo-store";
 import {
   donationTypeLabels,
-  formatBDT,
+  formatMoney,
   formatDate,
   timeAgo,
 } from "@/lib/utils";
@@ -103,7 +103,7 @@ export function DashboardOverview() {
             </h2>
             <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-white/60">
               {approved.length > 0
-                ? `You have supported ${supportedStudents.length} ${supportedStudents.length === 1 ? "student" : "students"} with ${formatBDT(totalDonated)} in verified donations.`
+                ? `You have supported ${supportedStudents.length} ${supportedStudents.length === 1 ? "student" : "students"} with ${formatMoney(totalDonated)} in verified donations.`
                 : "Your support can help a student stay in class. Browse verified profiles to get started."}
             </p>
           </div>
@@ -130,7 +130,7 @@ export function DashboardOverview() {
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Total donated"
-          value={formatBDT(totalDonated)}
+          value={formatMoney(totalDonated)}
           icon={Wallet}
           hint="Verified donations only"
           tone="brand"
@@ -202,7 +202,7 @@ export function DashboardOverview() {
                     </div>
                     <div className="text-right">
                       <p className="text-[13px] font-bold text-ink">
-                        {formatBDT(donation.amount)}
+                        {formatMoney(donation.amount)}
                       </p>
                       <StatusPill
                         tone={donationStatusTone(donation.status)}
@@ -359,7 +359,7 @@ export function DashboardOverview() {
                   <div className="mt-3 flex items-center justify-between text-[11px]">
                     <span className="text-slate-muted">Your support</span>
                     <span className="font-bold text-brand-dark">
-                      {formatBDT(given)}
+                      {formatMoney(given)}
                     </span>
                   </div>
                   <FundingProgress percent={funding.percent} className="mt-2" />

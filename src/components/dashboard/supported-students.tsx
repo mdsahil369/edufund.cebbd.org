@@ -15,7 +15,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { EmptyState } from "@/components/shared/empty-state";
 import { Button } from "@/components/ui/button";
 import { useDemoData } from "@/lib/store/demo-store";
-import { formatBDT, formatDate } from "@/lib/utils";
+import { formatMoney, formatDate } from "@/lib/utils";
 
 export function SupportedStudents() {
   const { session, hydrated, donations, students, fundingFor } = useDemoData();
@@ -97,7 +97,7 @@ export function SupportedStudents() {
               supported
             </span>
             <span className="text-slate-muted">
-              {formatBDT(
+              {formatMoney(
                 supported.reduce((sum, item) => sum + item.total, 0),
               )}{" "}
               in verified donations
@@ -132,7 +132,7 @@ export function SupportedStudents() {
                     <div>
                       <p className="text-[10px] text-slate-muted">Your support</p>
                       <p className="text-[13px] font-bold text-brand-dark">
-                        {formatBDT(total)}
+                        {formatMoney(total)}
                       </p>
                     </div>
                     <div>
@@ -152,8 +152,8 @@ export function SupportedStudents() {
                     </div>
                     <FundingProgress percent={funding.percent} className="mt-1.5" />
                     <p className="mt-1 text-[10px] text-slate-muted">
-                      {formatBDT(funding.raised)} raised of{" "}
-                      {formatBDT(funding.required)}
+                      {formatMoney(funding.raised)} raised of{" "}
+                      {formatMoney(funding.required)}
                     </p>
                   </div>
 

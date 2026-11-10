@@ -11,21 +11,21 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
-  Banknote,
   CalendarClock,
   CalendarDays,
   Check,
   CheckCircle2,
   Clock3,
   Copy,
+  CreditCard,
   GraduationCap,
   Heart,
   Landmark,
   Loader2,
   LockKeyhole,
+  Phone,
   ShieldCheck,
   Smartphone,
-  Wallet,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StudentAvatar } from "@/components/students/student-avatar";
@@ -51,10 +51,17 @@ import type {
 import {
   cn,
   donationTypeLabels,
-  formatBDT,
+  formatMoney,
   formatDate,
   paymentMethodLabels,
 } from "@/lib/utils";
+import {
+  MIN_ONE_TIME_BDT,
+  USD_TO_BDT,
+  formatBDT,
+  toBdt,
+  toUsd,
+} from "@/lib/currency";
 
 const supportTypes: {
   value: DonationType;
@@ -88,14 +95,16 @@ const supportTypes: {
   },
 ];
 
+type WizardPaymentMethod = "bank-transfer" | "bkash" | "card";
+
 const methods: {
-  value: PaymentMethodId;
+  value: WizardPaymentMethod;
   label: string;
   icon: typeof Landmark;
 }[] = [
   { value: "bank-transfer", label: "Bank transfer", icon: Landmark },
   { value: "bkash", label: "bKash", icon: Smartphone },
-  { value: "nagad", label: "Nagad", icon: Wallet },
+  { value: "card", label: "Card / international", icon: CreditCard },
 ];
 
 const stepLabels = [
@@ -114,7 +123,7 @@ const validTypes: DonationType[] = [
 ];
 
 const donationFormSchema = z.object({
-  method: z.enum(["bank-transfer", "bkash", "nagad"]),
+  method: z.enum(["bank-transfer", "bkash", "card"]),
   transactionId: z
     .string()
     .trim()
@@ -228,6 +237,12 @@ function Stepper({ step }: { step: number }) {
 export function DonationWizard({ student, funding }: DonationWizardProps) {
   const searchParams = useSearchParams();
   const { session, hydrated, submitDonation, paymentSettings } = useDemoData();
+
+  // Settings can come from localStorage written by an older release, so each new
+  // field is read with a fallback instead of assuming it exists.
+  const internationalSteps = paymentSettings.international ?? [];
+  const paymentInstructions = paymentSettings.instructions ?? [];
+  const whatsappContact = paymentSettings.whatsapp ?? { name: "", number: "" };
 
   const initialType = useMemo(() => {
     const value = searchParams.get("type");
@@ -383,7 +398,7 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
                 ["Receipt number", submitted.receiptNumber],
                 ["Student", student.fullName],
                 ["Support type", donationTypeLabels[submitted.type]],
-                ["Amount", formatBDT(submitted.amount)],
+                ["Amount", formatMoney(submitted.amount)],
                 ["Payment method", paymentMethodLabels[submitted.method]],
                 ["Transaction ID", submitted.transactionId],
                 ["Payment date", formatDate(submitted.paymentDate)],
@@ -438,12 +453,12 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
                   const selected = type === option.value;
                   const optionAmount =
                     option.value === "one-time"
-                      ? `From ${formatBDT(Math.min(...student.supportPlans.oneTimeOptions))}`
+                      ? `From ${formatMoney(Math.min(...student.supportPlans.oneTimeOptions))}`
                       : option.value === "monthly"
-                        ? `${formatBDT(student.supportPlans.monthly)} / month`
+                        ? `${formatMoney(student.supportPlans.monthly)} / month`
                         : option.value === "yearly"
-                          ? `${formatBDT(student.supportPlans.yearly)} / year`
-                          : formatBDT(student.supportPlans.fullScholarship);
+                          ? `${formatMoney(student.supportPlans.yearly)} / year`
+                          : formatMoney(student.supportPlans.fullScholarship);
                   return (
                     <button
                       key={option.value}
@@ -495,6 +510,7 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
               {type === "one-time" ? (
                 <div className="mt-5">
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    {/* Amounts are stored in BDT and displayed in USD. */}
                     {student.supportPlans.oneTimeOptions.map((option) => (
                       <button
                         key={option}
@@ -510,7 +526,7 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
                             : "border-border bg-white text-ink hover:border-brand/30",
                         )}
                       >
-                        {formatBDT(option)}
+                        {formatMoney(option)}
                       </button>
                     ))}
                   </div>
@@ -531,18 +547,28 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
                     {customAmount && (
                       <div className="mt-2 max-w-xs">
                         <label htmlFor="custom-amount" className="mb-1.5 block text-[11.5px] font-medium text-ink">
-                          Amount (BDT)
+                          Your amount (USD)
                         </label>
                         <Input
                           id="custom-amount"
                           type="number"
-                          min={100}
-                          step={100}
-                          value={amount || ""}
-                          onChange={(event) => setAmount(Number(event.target.value))}
-                          placeholder="Enter amount"
+                          min={Math.round(MIN_ONE_TIME_BDT / USD_TO_BDT)}
+                          step={1}
+                          value={amount > 0 ? toUsd(amount) : ""}
+                          onChange={(event) =>
+                            setAmount(toBdt(Number(event.target.value)))
+                          }
+                          placeholder="e.g. 20"
                         />
-                        <p className="mt-1 text-[10.5px] text-slate-muted">Minimum ৳100</p>
+                        <p className="mt-1 text-[10.5px] text-slate-muted">
+                          Minimum $8 (≈ ৳1,000). You will pay the BDT amount shown
+                          in your summary.
+                        </p>
+                        {customAmount && amount > 0 && amount < MIN_ONE_TIME_BDT && (
+                          <p className="mt-1 text-[10.5px] font-semibold text-red-600">
+                            Please give at least $8 (≈ ৳1,000).
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -553,15 +579,53 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
                     {donationTypeLabels[type]}
                   </p>
                   <p className="mt-1 text-3xl font-extrabold text-brand-dark">
-                    {formatBDT(amount)}
+                    {formatMoney(amount)}
                   </p>
                   <p className="mt-1 text-[12px] text-slate-muted">
                     {type === "monthly"
-                      ? "Pay this amount each month through your chosen manual method."
+                      ? `Pay ${formatBDT(amount)} each month through your chosen manual method.`
                       : type === "yearly"
-                        ? "Pay this amount once per academic year."
+                        ? `Pay ${formatBDT(amount)} once per academic year (two semesters).`
                         : "Covers the remaining verified need for this campaign."}
                   </p>
+
+                  {type === "monthly" && (
+                    <div className="mt-4 border-t border-brand/15 pt-4">
+                      <p className="text-[11.5px] font-semibold text-ink">
+                        Choose your monthly tier
+                      </p>
+                      <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                        {(student.supportPlans.monthlyOptions ?? []).map((tier, index) => (
+                          <button
+                            key={tier}
+                            type="button"
+                            onClick={() => setAmount(tier)}
+                            className={cn(
+                              "rounded-xl border px-3 py-2.5 text-left transition-colors",
+                              amount === tier
+                                ? "border-brand bg-white shadow-sm"
+                                : "border-border bg-white/60 hover:border-brand/30",
+                            )}
+                          >
+                            <span className="block text-[13px] font-extrabold text-brand-dark">
+                              {formatMoney(tier)}
+                            </span>
+                            <span className="block text-[10px] text-slate-muted">
+                              {index === 0
+                                ? "Full support"
+                                : index === 1
+                                  ? "Partial support"
+                                  : "Partial support"}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="mt-2 text-[10.5px] text-slate-muted">
+                        Each tier can be cancelled at any time — you simply stop
+                        sending the monthly payment.
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -577,15 +641,15 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
             <div>
               <h2 className="text-xl font-bold text-navy">Make your manual payment</h2>
               <p className="mt-1.5 text-[13px] text-slate-muted">
-                Send <strong className="text-ink">{formatBDT(amount)}</strong> using one
+                Send <strong className="text-ink">{formatMoney(amount)}</strong> using one
                 of the methods below, then continue to submit your payment details.
               </p>
 
               <Tabs defaultValue="bkash" className="mt-5">
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="bkash">bKash</TabsTrigger>
-                  <TabsTrigger value="nagad">Nagad</TabsTrigger>
                   <TabsTrigger value="bank-transfer">Bank</TabsTrigger>
+                  <TabsTrigger value="international">International</TabsTrigger>
                 </TabsList>
                 <TabsContent value="bkash" className="mt-4 space-y-2.5">
                   <CopyValue label="bKash number" value={paymentSettings.bkash.number} />
@@ -595,14 +659,7 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
                     from your confirmation SMS.
                   </p>
                 </TabsContent>
-                <TabsContent value="nagad" className="mt-4 space-y-2.5">
-                  <CopyValue label="Nagad number" value={paymentSettings.nagad.number} />
-                  <CopyValue label="Account type" value={paymentSettings.nagad.accountType} />
-                  <p className="text-[11.5px] leading-relaxed text-slate-muted">
-                    Send money to the number above and keep the transaction ID from
-                    your confirmation SMS.
-                  </p>
-                </TabsContent>
+
                 <TabsContent value="bank-transfer" className="mt-4 space-y-2.5">
                   <CopyValue label="Bank" value={paymentSettings.bank.bankName} />
                   <CopyValue label="Account name" value={paymentSettings.bank.accountName} />
@@ -614,12 +671,43 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
                     reference, then keep the bank slip or confirmation.
                   </p>
                 </TabsContent>
+                <TabsContent value="international" className="mt-4 space-y-2.5">
+                  <ol className="space-y-2 text-[11.5px] leading-relaxed text-slate-muted">
+                    {internationalSteps.map((item, index) => (
+                      <li key={item} className="flex gap-2">
+                        <span className="font-bold text-brand">{index + 1}.</span>
+                        {item}
+                      </li>
+                    ))}
+                  </ol>
+                </TabsContent>
               </Tabs>
+
+              <a
+                href={`https://wa.me/${whatsappContact.number.replace(/[^0-9]/g, "")}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-5 flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 p-4 transition-colors hover:border-emerald-300 hover:bg-emerald-100/70"
+              >
+                <span className="inline-flex size-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white">
+                  <Phone className="size-4" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[12px] font-bold text-emerald-900">
+                    Need help? WhatsApp the CEBBD President
+                  </p>
+                  <p className="text-[11.5px] text-emerald-800/80">
+                    {whatsappContact.name} ·{" "}
+                    {whatsappContact.number}
+                  </p>
+                </div>
+                <ArrowRight className="ml-auto size-4 shrink-0 text-emerald-700" />
+              </a>
 
               <div className="mt-5 rounded-xl border border-border bg-surface p-4">
                 <p className="text-[12px] font-semibold text-navy">Payment instructions</p>
                 <ol className="mt-2 space-y-1.5 text-[11.5px] leading-relaxed text-slate-muted">
-                  {paymentSettings.instructions.map((instruction, index) => (
+                  {paymentInstructions.map((instruction, index) => (
                     <li key={instruction} className="flex gap-2">
                       <span className="font-bold text-brand">{index + 1}.</span>
                       {instruction}
@@ -822,12 +910,12 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
           </div>
           <div className="mt-4">
             <div className="flex justify-between text-[11px] text-slate-muted">
-              <span>{formatBDT(funding.raised)} raised</span>
+              <span>{formatMoney(funding.raised)} raised</span>
               <span>{funding.percent}%</span>
             </div>
             <FundingProgress percent={funding.percent} className="mt-2" />
             <p className="mt-2 text-[10.5px] text-slate-muted">
-              {formatBDT(funding.remaining)} still needed
+              {formatMoney(funding.remaining)} still needed
             </p>
           </div>
         </div>
@@ -843,7 +931,7 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-slate-muted">Amount</dt>
-              <dd className="font-bold text-brand-dark">{formatBDT(amount)}</dd>
+              <dd className="font-bold text-brand-dark">{formatMoney(amount)}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-slate-muted">Status</dt>
@@ -858,7 +946,7 @@ export function DonationWizard({ student, funding }: DonationWizardProps) {
             Verified process
           </h3>
           <ul className="mt-2.5 space-y-2 text-[11px] leading-relaxed text-slate-muted">
-            <li>• Manual payments only — no card or gateway is charged.</li>
+            <li>• Manual payments only — no card details are ever collected here.</li>
             <li>• Our finance team verifies every transaction.</li>
             <li>• Approved funds are paid to the institution.</li>
             <li>• You can track the status in your dashboard.</li>

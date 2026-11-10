@@ -70,7 +70,12 @@ function toDonationStatus(value: string): DonationStatus {
 }
 
 function toPaymentMethod(value: string): PaymentMethodId {
-  const allowed: PaymentMethodId[] = ["bank-transfer", "bkash", "nagad"];
+  const allowed: PaymentMethodId[] = [
+    "bank-transfer",
+    "bkash",
+    "nagad",
+    "card",
+  ];
   return allowed.includes(value as PaymentMethodId)
     ? (value as PaymentMethodId)
     : "bkash";

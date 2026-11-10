@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { useDemoData } from "@/lib/store/demo-store";
 import type { Student } from "@/types";
 import { getCategoryName } from "@/lib/mock-data/categories";
-import { cn, formatBDT } from "@/lib/utils";
+import { cn, formatMoney } from "@/lib/utils";
 
 export function AdminSupportPlans() {
   const { hydrated, students } = useDemoData();
@@ -202,6 +202,11 @@ function SupportPlanForm({ student }: { student: Student }) {
     const result = await updateSupportPlans(student.id, {
       oneTimeOptions,
       monthly: monthlyAmount,
+      monthlyOptions: [
+        monthlyAmount,
+        Math.round(monthlyAmount * 0.76),
+        Math.round(monthlyAmount * 0.52),
+      ],
       yearly: yearlyAmount,
       fullScholarship: scholarshipAmount,
     });
@@ -247,8 +252,8 @@ function SupportPlanForm({ student }: { student: Student }) {
         <div className="mt-4 flex flex-wrap items-center gap-4 rounded-lg bg-surface px-3 py-2.5 text-[10.5px] text-slate-muted">
           <span className="flex items-center gap-1.5">
             <Wallet className="size-3.5 text-brand" />
-            {formatBDT(funding.raised)} raised of{" "}
-            {formatBDT(funding.required)}
+            {formatMoney(funding.raised)} raised of{" "}
+            {formatMoney(funding.required)}
           </span>
           <span>{funding.percent}% funded</span>
           <span>{funding.supporterCount} supporters</span>

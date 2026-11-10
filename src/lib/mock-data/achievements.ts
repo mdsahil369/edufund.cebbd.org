@@ -1,99 +1,69 @@
 import type { Achievement } from "@/types";
 
 /**
- * CEBBD achievements are intentionally code-managed, not editable from the
- * admin dashboard. Add or remove entries here and the homepage/achievements
- * page will update automatically. The homepage reveals three at a time.
+ * CEBBD milestones. Intentionally code-managed, not editable from the admin
+ * dashboard. Only include things the organisation can stand behind — no
+ * illustrative or projected figures.
  */
 export const achievements: Achievement[] = [
   {
     id: "ach-01",
-    title: "1,200 students supported across all 64 districts",
+    title: "18 diploma students shortlisted for the 2026–27 session",
     description:
-      "CEBBD reached a milestone this quarter: more than 1,200 students have received education support since the programme began, from Sylhet's tea gardens to the river islands of Barishal.",
-    date: "2026-09-28",
+      "From hundreds of SSC and HSC dropouts, CEB has carefully shortlisted 18 deserving students who can begin a Diploma in Engineering with sponsorship support.",
+    date: "2026-10-01",
     image: "/images/achievements/achievement-1.svg",
-    category: "Milestone",
-    metric: "1,200+ students",
+    category: "Scholarships",
+    metric: "18 students",
   },
   {
     id: "ach-02",
-    title: "Digital learning lab opens in Rangpur",
+    title: "Home and institute visits completed for every shortlisted student",
     description:
-      "A new community learning lab with 20 workstations now offers free computer and internet access to diploma students in Rangpur, supported by CEBBD donors and local partners.",
-    date: "2026-08-16",
+      "A CEBBD volunteer team visited each shortlisted family and their polytechnic to confirm financial need, enrolment eligibility, and the exact fees due.",
+    date: "2026-09-20",
     image: "/images/achievements/achievement-2.svg",
-    category: "Infrastructure",
-    metric: "20 workstations",
+    category: "Verification",
+    metric: "100% verified",
   },
   {
     id: "ach-03",
-    title: "Annual scholarship gala raises ৳2.4 million",
+    title: "Manual payment verification added to every donation",
     description:
-      "Supporters, alumni, and partner organisations gathered in Dhaka for CEBBD's annual gala. The evening raised ৳2.4 million for the 2027 scholarship fund.",
-    date: "2026-07-05",
+      "Every bKash, bank, and international transfer now carries a transaction or bank reference that the finance team matches before a donation counts.",
+    date: "2026-09-05",
     image: "/images/achievements/achievement-3.svg",
-    category: "Fundraising",
-    metric: "৳2.4M raised",
+    category: "Transparency",
+    metric: "Every payment checked",
   },
   {
     id: "ach-04",
-    title: "17 diploma scholars begin the 2026 academic year",
+    title: "Donors can now track donations from pending to approved",
     description:
-      "Seventeen newly selected diploma scholars started classes this month across polytechnic and nursing institutes, with full semester fees and mentoring support in place.",
-    date: "2026-05-22",
+      "The donor dashboard shows the full history of each contribution, so supporters can see exactly when a payment was verified and added to a campaign.",
+    date: "2026-08-18",
     image: "/images/achievements/achievement-4.svg",
-    category: "Scholarships",
-    metric: "17 new scholars",
+    category: "Technology",
+    metric: "Live dashboard",
   },
   {
     id: "ach-05",
-    title: "CEBBD partners with three polytechnic institutes",
+    title: "Three sponsorship tiers introduced: $17, $13, and $9 a month",
     description:
-      "Formal partnerships with three institutes will allow CEBBD to verify student records faster and pay fees directly to institutional accounts.",
-    date: "2026-04-10",
+      "Supporters can now choose full support (2,100 taka), partial support (1,600 taka), or a smaller monthly contribution (1,100 taka) for the same student.",
+    date: "2026-08-01",
     image: "/images/achievements/achievement-5.svg",
-    category: "Partnerships",
-    metric: "3 institutes",
+    category: "Programme",
+    metric: "3 monthly tiers",
   },
   {
     id: "ach-06",
-    title: "Emergency education fund supports 40 flood-affected families",
+    title: "Yearly and full-scholarship support made available",
     description:
-      "When flooding disrupted schooling in the north, CEBBD's emergency fund provided learning materials, uniforms, and transport support to 40 affected families.",
-    date: "2026-02-14",
+      "Donors can cover two semesters at once (7,000 taka) or fund a student's entire diploma (56,000 taka), with fees paid directly to the institution.",
+    date: "2026-07-12",
     image: "/images/achievements/achievement-6.svg",
-    category: "Emergency response",
-    metric: "40 families",
-  },
-  {
-    id: "ach-07",
-    title: "First cohort of nursing scholars graduates",
-    description:
-      "Eight nursing scholars completed their diplomas and are now serving in rural health centres across Barishal and Khulna divisions.",
-    date: "2025-12-20",
-    image: "/images/achievements/achievement-7.svg",
-    category: "Graduation",
-    metric: "8 graduates",
-  },
-  {
-    id: "ach-08",
-    title: "Women in STEM mentorship programme launches",
-    description:
-      "Forty-eight female diploma students were paired with working engineers and technologists for a year-long mentorship programme.",
-    date: "2025-10-08",
-    image: "/images/achievements/achievement-8.svg",
     category: "Programme",
-    metric: "48 mentees",
-  },
-  {
-    id: "ach-09",
-    title: "Community donors cross 900 active supporters",
-    description:
-      "Our community of regular supporters passed 900 people this month, with monthly sponsorships becoming the fastest-growing form of giving.",
-    date: "2025-08-30",
-    image: "/images/achievements/achievement-9.svg",
-    category: "Community",
-    metric: "900+ supporters",
+    metric: "2 new options",
   },
 ];

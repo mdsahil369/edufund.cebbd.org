@@ -39,6 +39,9 @@ function PaymentSettingsForm() {
   const [instructionsText, setInstructionsText] = useState(
     paymentSettings.instructions.join("\n"),
   );
+  const [internationalText, setInternationalText] = useState(
+    paymentSettings.international.join("\n"),
+  );
 
   const save = () => {
     const instructions = instructionsText
@@ -52,6 +55,10 @@ function PaymentSettingsForm() {
     updatePaymentSettings({
       ...form,
       instructions,
+      international: internationalText
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
       updatedAt: new Date().toISOString(),
     });
     toast.success("Payment settings saved.");
@@ -69,6 +76,7 @@ function PaymentSettingsForm() {
               onClick={() => {
                 setForm(paymentSettings);
                 setInstructionsText(paymentSettings.instructions.join("\n"));
+                setInternationalText(paymentSettings.international.join("\n"));
                 toast.info("Unsaved changes discarded.");
               }}
             >
@@ -264,6 +272,71 @@ function PaymentSettingsForm() {
                   list for donors.
                 </p>
               </div>
+              <div>
+                <label
+                  htmlFor="international"
+                  className="mb-1 block text-[11.5px] font-semibold text-ink"
+                >
+                  International / card payment instructions (one per line)
+                </label>
+                <Textarea
+                  id="international"
+                  rows={5}
+                  value={internationalText}
+                  onChange={(event) => setInternationalText(event.target.value)}
+                />
+                <p className="mt-1 text-[10px] text-slate-muted">
+                  Shown in the “International” tab of the donation wizard.
+                </p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="whatsapp-name"
+                    className="mb-1 block text-[11.5px] font-semibold text-ink"
+                  >
+                    WhatsApp contact name
+                  </label>
+                  <Input
+                    id="whatsapp-name"
+                    value={form.whatsapp.name}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        whatsapp: {
+                          ...current.whatsapp,
+                          name: event.target.value,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="whatsapp-number"
+                    className="mb-1 block text-[11.5px] font-semibold text-ink"
+                  >
+                    WhatsApp number
+                  </label>
+                  <Input
+                    id="whatsapp-number"
+                    value={form.whatsapp.number}
+                    onChange={(event) =>
+                      setForm((current) => ({
+                        ...current,
+                        whatsapp: {
+                          ...current.whatsapp,
+                          number: event.target.value,
+                        },
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+              <p className="rounded-lg bg-surface px-3 py-2 text-[10.5px] leading-relaxed text-slate-muted">
+                This contact appears highlighted under every payment option so
+                donors can reach a person before or after paying.
+              </p>
               <div>
                 <label
                   htmlFor="verificationNote"

@@ -24,10 +24,12 @@ export type StudentVisibility = "published" | "unpublished";
 export type PublicStudent = Omit<Student, "privateInfo">;
 
 export interface StudentSupportPlans {
-  /** Admin controlled preset amounts for one-time contributions */
+  /** Admin controlled preset amounts for one-time contributions (BDT) */
   oneTimeOptions: number[];
-  /** Admin controlled recurring amount (BDT) */
+  /** Default monthly amount (BDT) — the full-support tier */
   monthly: number;
+  /** Selectable monthly tiers (BDT): full / partial / partial */
+  monthlyOptions: number[];
   /** Admin controlled recurring amount (BDT) */
   yearly: number;
   /** Admin controlled full scholarship amount (BDT) */
@@ -112,7 +114,11 @@ export interface Session {
 
 export type DonationType = "one-time" | "monthly" | "yearly" | "full-scholarship";
 export type DonationStatus = "pending" | "approved" | "rejected";
-export type PaymentMethodId = "bank-transfer" | "bkash" | "nagad";
+export type PaymentMethodId =
+  | "bank-transfer"
+  | "bkash"
+  | "nagad"
+  | "card";
 
 export interface Donation {
   id: ID;
@@ -218,6 +224,12 @@ export interface PaymentSettings {
   bkash: MobileWalletDetails;
   nagad: MobileWalletDetails;
   instructions: string[];
+  /** Shown to donors paying from outside Bangladesh by card / bank transfer. */
+  international: string[];
+  whatsapp: {
+    name: string;
+    number: string;
+  };
   verificationNote: string;
   supportEmail: string;
   supportPhone: string;
@@ -241,6 +253,17 @@ export interface SiteSettings {
     youtube: string;
   };
   donationNote: string;
+}
+
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string;
+  subject: "general" | "donation" | "student" | "partnership" | "media";
+  message: string;
+  status: "new" | "read";
+  createdAt: string;
 }
 
 export interface ImpactStats {

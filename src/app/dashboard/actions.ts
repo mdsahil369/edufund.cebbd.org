@@ -241,7 +241,7 @@ export async function setDonorPrivacyAction(
 }
 
 const donationTypes = ["one-time", "monthly", "yearly", "full-scholarship"];
-const paymentMethods = ["bank-transfer", "bkash", "nagad"];
+const paymentMethods = ["bank-transfer", "bkash", "nagad", "card"];
 
 export async function submitDonationAction(
   input: DonationInput,

@@ -31,7 +31,7 @@ import {
   cn,
   donationStatusLabels,
   donationTypeLabels,
-  formatBDT,
+  formatMoney,
   formatDate,
   formatDateTime,
   paymentMethodLabels,
@@ -128,7 +128,7 @@ export function DonorDonations() {
       <div className="grid gap-4 sm:grid-cols-3">
         <StatCard
           label="Verified total"
-          value={formatBDT(approvedTotal)}
+          value={formatMoney(approvedTotal)}
           icon={CheckCircle2}
           hint={`${counts.approved} approved donations`}
           tone="brand"
@@ -269,7 +269,7 @@ export function DonorDonations() {
                           {donationTypeLabels[donation.type]}
                         </span>
                         <span className="text-[12.5px] font-bold text-ink">
-                          {formatBDT(donation.amount)}
+                          {formatMoney(donation.amount)}
                         </span>
                         <span className="text-[11.5px] text-slate-muted">
                           {donation.status === "approved"
@@ -326,7 +326,7 @@ export function DonorDonations() {
                           {paymentMethodLabels[donation.method]}
                         </span>
                         <span className="font-bold text-ink">
-                          {formatBDT(donation.amount)}
+                          {formatMoney(donation.amount)}
                         </span>
                       </div>
                     </button>
@@ -357,7 +357,7 @@ export function DonorDonations() {
                   <div>
                     <p className="text-[11px] text-slate-muted">Amount</p>
                     <p className="text-xl font-extrabold text-navy">
-                      {formatBDT(selected.amount)}
+                      {formatMoney(selected.amount)}
                     </p>
                   </div>
                   <StatusPill tone={donationStatusTone(selected.status)}>

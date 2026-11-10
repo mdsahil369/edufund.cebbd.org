@@ -4,16 +4,12 @@ import { ArrowRight } from "lucide-react";
 import { HomeHero } from "@/components/home/home-hero";
 import { ImpactStatsSection } from "@/components/home/impact-stats";
 import { HowItWorksSection } from "@/components/home/how-it-works";
-import { WaysToSupportSection } from "@/components/home/ways-to-support";
-import { AchievementsGallery } from "@/components/home/achievements-gallery";
 import { TrustSection } from "@/components/home/trust-section";
 import { HomeCtaSection } from "@/components/home/home-cta";
 import { StudentCard } from "@/components/students/student-card";
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Button } from "@/components/ui/button";
 import { getFeaturedStudents } from "@/lib/services/students";
-import { impactStats } from "@/lib/mock-data/stats";
-import { achievements } from "@/lib/mock-data/achievements";
 import { fundingForStudent, getFundingTotals } from "@/lib/services/funding";
 import { toPublicStudent } from "@/lib/students";
 
@@ -51,14 +47,14 @@ export default async function HomePage() {
       {heroStudent && (
         <HomeHero featuredStudent={heroStudent} funding={heroFunding} />
       )}
-      <ImpactStatsSection stats={impactStats} />
+      <ImpactStatsSection />
 
       <section className="section-pad bg-white">
         <div className="container-page">
           <SectionHeading
             eyebrow="Featured students"
             title="Meet students waiting for a chance to continue"
-            description="Each profile is verified by CEBBD. Every contribution is recorded, reviewed, and paid directly toward education costs."
+            description="Each of these 18 students has been visited and verified by CEBBD. Every contribution is recorded, reviewed, and paid directly toward their education costs."
             action={
               <Button asChild variant="outline">
                 <Link href="/students">
@@ -91,19 +87,6 @@ export default async function HomePage() {
       </section>
 
       <HowItWorksSection />
-      <WaysToSupportSection />
-
-      <section className="section-pad bg-white">
-        <div className="container-page">
-          <SectionHeading
-            eyebrow="CEBBD achievements"
-            title="Progress we have made together"
-            description="Milestones from the Community Empowerment Bangladesh education programme. These stories are maintained by our team and updated as the programme grows."
-          />
-          <AchievementsGallery achievements={achievements} className="mt-10" />
-        </div>
-      </section>
-
       <TrustSection />
       <HomeCtaSection />
     </>

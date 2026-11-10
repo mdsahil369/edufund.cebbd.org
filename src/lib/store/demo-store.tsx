@@ -18,9 +18,12 @@ import type {
   DonationInput,
   Donor,
   DonorStatus,
+  DonationType,
+  EducationCategory,
   FundingSummary,
   FundingTotals,
   Message,
+  PaymentMethodId,
   PaymentSettings,
   Session,
   SiteSettings,
@@ -45,11 +48,13 @@ import {
   type DonorActionResult,
 } from "@/app/dashboard/actions";
 import {
+  createManualDonationAction,
   listDonorsForAdminAction,
   reviewDonationAction,
   setDonorStatusAction,
   updateDonorAdminNotesAction,
 } from "@/app/admin/donors/actions";
+import { listCategoriesAction } from "@/app/admin/categories/actions";
 import {
   createStudentAction,
   deleteStudentAction,
@@ -68,6 +73,10 @@ import {
  * to keep the message system static for now).
  */
 const STORAGE_KEY = "edufund-demo-v3";
+// Bumping the payload version is not required to read old data: stored settings
+// are merged onto the current defaults below.
+const STORAGE_VERSION = 4;
+const READABLE_VERSIONS = [3, STORAGE_VERSION];
 
 type AuthRole = "donor" | "admin";
 
@@ -75,6 +84,44 @@ type PersistedData = Pick<
   DemoDataState,
   "conversations" | "messages" | "paymentSettings" | "siteSettings"
 >;
+
+/**
+ * Settings saved in localStorage can come from an older release, so every
+ * nested field is merged onto the current defaults. Without this, a new field
+ * (for example `paymentSettings.international`) would be undefined at runtime.
+ */
+function withDefaultPaymentSettings(
+  stored?: Partial<PaymentSettings> | null,
+): PaymentSettings {
+  if (!stored) return initialPaymentSettings;
+  return {
+    ...initialPaymentSettings,
+    ...stored,
+    bank: { ...initialPaymentSettings.bank, ...(stored.bank ?? {}) },
+    bkash: { ...initialPaymentSettings.bkash, ...(stored.bkash ?? {}) },
+    nagad: { ...initialPaymentSettings.nagad, ...(stored.nagad ?? {}) },
+    whatsapp: { ...initialPaymentSettings.whatsapp, ...(stored.whatsapp ?? {}) },
+    instructions:
+      Array.isArray(stored.instructions) && stored.instructions.length > 0
+        ? stored.instructions
+        : initialPaymentSettings.instructions,
+    international:
+      Array.isArray(stored.international) && stored.international.length > 0
+        ? stored.international
+        : initialPaymentSettings.international,
+  };
+}
+
+function withDefaultSiteSettings(
+  stored?: Partial<SiteSettings> | null,
+): SiteSettings {
+  if (!stored) return initialSiteSettings;
+  return {
+    ...initialSiteSettings,
+    ...stored,
+    socials: { ...initialSiteSettings.socials, ...(stored.socials ?? {}) },
+  };
+}
 
 function displayNameFor(user: User): string {
   const metadata = user.user_metadata ?? {};
@@ -117,6 +164,7 @@ function authErrorMessage(message: string): string {
 interface DemoDataState {
   session: Session | null;
   students: Student[];
+  categories: EducationCategory[];
   donors: Donor[];
   donations: Donation[];
   fundingSummaries: Record<string, FundingTotals>;
@@ -131,6 +179,7 @@ function createInitialState(): DemoDataState {
     session: null,
     // Students, donors and donations are loaded from Supabase once signed in.
     students: [],
+    categories: [],
     donors: [],
     donations: [],
     fundingSummaries: {},
@@ -174,6 +223,18 @@ interface DemoContextValue extends DemoDataState {
   }>;
   logout: () => Promise<void>;
   submitDonation: (input: DonationInput) => Promise<Donation>;
+  addManualDonation: (input: {
+    donorId: string;
+    studentId: string;
+    type: DonationType;
+    amount: number;
+    method: PaymentMethodId;
+    transactionId?: string;
+    senderReference?: string;
+    paymentDate?: string;
+    message?: string;
+    status?: "pending" | "approved";
+  }) => Promise<DonorActionResult>;
   approveDonation: (id: string) => Promise<DonorActionResult>;
   rejectDonation: (id: string, note: string) => Promise<DonorActionResult>;
   startConversation: (
@@ -237,10 +298,14 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       ]);
 
       if (role === "admin") {
-        const { donors, donations } = await listDonorsForAdminAction();
+        const [{ donors, donations }, categories] = await Promise.all([
+          listDonorsForAdminAction(),
+          listCategoriesAction(),
+        ]);
         setState((previous) => ({
           ...previous,
           students,
+          categories,
           fundingSummaries: funding,
           donors,
           donations,
@@ -271,6 +336,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
         ...previous,
         session: null,
         students: [],
+        categories: [],
         donors: [],
         donations: [],
         fundingSummaries: {},
@@ -299,11 +365,16 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           data?: Partial<PersistedData>;
         };
         const data = parsed.data;
-        if (parsed.version === 3 && data) {
+        if (data && parsed.version && READABLE_VERSIONS.includes(parsed.version)) {
           // Hydrating from localStorage after mount is intentional: the server
           // has no access to it, so doing this during render would mismatch.
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setState((previous) => ({ ...previous, ...data }));
+          setState((previous) => ({
+            ...previous,
+            ...data,
+            paymentSettings: withDefaultPaymentSettings(data.paymentSettings),
+            siteSettings: withDefaultSiteSettings(data.siteSettings),
+          }));
         }
       }
     } catch {
@@ -380,7 +451,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       };
       window.localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ version: 3, data }),
+        JSON.stringify({ version: STORAGE_VERSION, data }),
       );
     } catch {
       // Storage may be unavailable (private mode); the app still works.
@@ -476,6 +547,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       ...previous,
       session: null,
       students: [],
+      categories: [],
       donors: [],
       donations: [],
       fundingSummaries: {},
@@ -497,6 +569,32 @@ export function DemoProvider({ children }: { children: ReactNode }) {
 
     return result.donation;
   }, []);
+
+  const addManualDonation = useCallback(
+    async (input: {
+      donorId: string;
+      studentId: string;
+      type: DonationType;
+      amount: number;
+      method: PaymentMethodId;
+      transactionId?: string;
+      senderReference?: string;
+      paymentDate?: string;
+      message?: string;
+      status?: "pending" | "approved";
+    }): Promise<DonorActionResult> => {
+      const result = await createManualDonationAction(input);
+      if (!result.ok) return result;
+
+      setState((previous) => ({
+        ...previous,
+        donations: [result.donation, ...previous.donations],
+      }));
+      await refreshFundingSummaries();
+      return { ok: true };
+    },
+    [refreshFundingSummaries],
+  );
 
   const approveDonation = useCallback(
     async (id: string): Promise<DonorActionResult> => {
@@ -1007,6 +1105,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       register,
       logout,
       submitDonation,
+      addManualDonation,
       approveDonation,
       rejectDonation,
       startConversation,
@@ -1038,6 +1137,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
       register,
       logout,
       submitDonation,
+      addManualDonation,
       approveDonation,
       rejectDonation,
       startConversation,

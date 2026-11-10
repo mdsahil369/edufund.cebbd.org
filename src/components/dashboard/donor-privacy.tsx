@@ -16,7 +16,7 @@ import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { useDemoData } from "@/lib/store/demo-store";
-import { formatBDT } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 
 export function DonorPrivacy() {
   const {
@@ -134,7 +134,7 @@ export function DonorPrivacy() {
                     {publicName}
                   </p>
                   <p className="text-[10.5px] text-slate-muted">
-                    donated {formatBDT(previewAmount)} to{" "}
+                    donated {formatMoney(previewAmount)} to{" "}
                     {previewStudent?.fullName ?? "a student"}
                   </p>
                 </div>

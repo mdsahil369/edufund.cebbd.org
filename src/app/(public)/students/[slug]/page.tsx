@@ -30,10 +30,10 @@ import {
 } from "@/components/shared/status-pill";
 import { Button } from "@/components/ui/button";
 import {
+  getEducationCategoryById,
   getPublishedStudents,
   getStudentBySlug,
 } from "@/lib/services/students";
-import { getCategoryById } from "@/lib/mock-data/categories";
 import {
   fundingForStudent,
   getFundingTotals,
@@ -42,7 +42,7 @@ import {
 import {
   campaignStatusLabels,
   donationTypeLabels,
-  formatBDT,
+  formatMoney,
   formatDate,
 } from "@/lib/utils";
 import { toPublicStudent } from "@/lib/students";
@@ -58,7 +58,7 @@ export async function generateMetadata({
   const student = await getStudentBySlug(slug);
   if (!student) return { title: "Student not found" };
 
-  const category = getCategoryById(student.categoryId);
+  const category = await getEducationCategoryById(student.categoryId);
   return {
     title: `${student.fullName} — ${category?.name ?? "Student"}`,
     description: student.shortBio,
@@ -86,10 +86,10 @@ export default async function StudentProfilePage({
   const student = await getStudentBySlug(slug);
   if (!student) notFound();
 
-  const category = getCategoryById(student.categoryId);
-  const [totals, recentSupporters] = await Promise.all([
+  const [totals, recentSupporters, category] = await Promise.all([
     getFundingTotals(),
     getRecentSupporters(student.id, 5),
+    getEducationCategoryById(student.categoryId),
   ]);
   const funding = fundingForStudent(student, totals);
   const firstName = student.fullName.split(" ")[0];
@@ -104,29 +104,37 @@ export default async function StudentProfilePage({
       type: "one-time",
       icon: Heart,
       label: "One-time donation",
-      amount: `From ${formatBDT(Math.min(...student.supportPlans.oneTimeOptions))}`,
+      amount: `From ${formatMoney(Math.min(...student.supportPlans.oneTimeOptions))}`,
       description: "Give any amount you choose",
+      recommended: false,
+      tiers: [] as number[],
     },
     {
       type: "monthly",
       icon: CalendarClock,
       label: "Monthly sponsorship",
-      amount: `${formatBDT(student.supportPlans.monthly)} / month`,
-      description: "Ongoing support, verified monthly",
+      amount: `${formatMoney(student.supportPlans.monthly)} / month`,
+      description: "Full support — most popular",
+      recommended: true,
+      tiers: student.supportPlans.monthlyOptions,
     },
     {
       type: "yearly",
       icon: CalendarDays,
       label: "Yearly sponsorship",
-      amount: `${formatBDT(student.supportPlans.yearly)} / year`,
+      amount: `${formatMoney(student.supportPlans.yearly)} / year`,
       description: "Cover a full academic year",
+      recommended: false,
+      tiers: [] as number[],
     },
     {
       type: "full-scholarship",
       icon: GraduationCap,
       label: "Full scholarship",
-      amount: formatBDT(student.supportPlans.fullScholarship),
+      amount: formatMoney(student.supportPlans.fullScholarship),
       description: "Meet the remaining campaign need",
+      recommended: false,
+      tiers: [] as number[],
     },
   ];
 
@@ -134,7 +142,7 @@ export default async function StudentProfilePage({
     <>
       <section className="relative overflow-hidden border-b border-border bg-white">
         <div className="pattern-dots absolute inset-0 opacity-30" aria-hidden="true" />
-        <div className="container-page relative py-6 sm:py-8">
+        <div className="container-page relative py-3 sm:py-4">
           <nav
             aria-label="Breadcrumb"
             className="flex flex-wrap items-center gap-1.5 text-xs text-slate-muted"
@@ -150,8 +158,8 @@ export default async function StudentProfilePage({
             <span className="font-medium text-ink">{student.fullName}</span>
           </nav>
 
-          <div className="mt-5 overflow-hidden rounded-3xl border border-border bg-white shadow-[0_18px_45px_-35px_rgba(16,42,67,0.4)]">
-            <div className="relative h-32 bg-gradient-to-r from-navy via-navy-light to-brand-dark sm:h-36">
+          <div className="mt-3 overflow-hidden rounded-3xl border border-border bg-white shadow-[0_18px_45px_-35px_rgba(16,42,67,0.4)]">
+            <div className="relative h-24 bg-gradient-to-r from-navy via-navy-light to-brand-dark sm:h-28">
               <div className="pattern-grid absolute inset-0 opacity-80" aria-hidden="true" />
               <div
                 className="absolute -top-10 right-10 size-40 rounded-full bg-white/10 blur-xl"
@@ -175,7 +183,7 @@ export default async function StudentProfilePage({
             </div>
 
             <div className="px-5 pb-6 sm:px-8">
-              <div className="-mt-12 flex flex-col gap-5 sm:flex-row sm:items-end">
+              <div className="-mt-10 flex flex-col gap-4 sm:flex-row sm:items-end">
                 <StudentAvatar
                   name={student.fullName}
                   photoUrl={student.photoUrl}
@@ -220,13 +228,13 @@ export default async function StudentProfilePage({
                 </div>
               </div>
 
-              <div className="mt-7 grid gap-3 sm:grid-cols-3">
+              <div className="mt-5 grid gap-3 sm:grid-cols-3">
                 <div className="rounded-xl border border-border bg-surface p-4">
                   <p className="text-[11px] font-medium text-slate-muted">
                     Required funding
                   </p>
                   <p className="mt-1 text-lg font-bold text-navy">
-                    {formatBDT(funding.required)}
+                    {formatMoney(funding.required)}
                   </p>
                 </div>
                 <div className="rounded-xl border border-brand/15 bg-brand-soft p-4">
@@ -234,7 +242,7 @@ export default async function StudentProfilePage({
                     Raised (approved only)
                   </p>
                   <p className="mt-1 text-lg font-bold text-brand-dark">
-                    {formatBDT(funding.raised)}
+                    {formatMoney(funding.raised)}
                   </p>
                 </div>
                 <div className="rounded-xl border border-amber-200/70 bg-amber-50/60 p-4">
@@ -242,7 +250,7 @@ export default async function StudentProfilePage({
                     Still needed
                   </p>
                   <p className="mt-1 text-lg font-bold text-amber-800">
-                    {formatBDT(funding.remaining)}
+                    {formatMoney(funding.remaining)}
                   </p>
                 </div>
               </div>
@@ -405,7 +413,7 @@ export default async function StudentProfilePage({
                 >
                   <span className="text-[13px] text-slate-muted">{row.label}</span>
                   <span className={`rounded-lg px-2.5 py-1 text-[13.5px] font-bold ${row.className}`}>
-                    {formatBDT(row.value)}
+                    {formatMoney(row.value)}
                   </span>
                 </div>
               ))}
@@ -462,7 +470,7 @@ export default async function StudentProfilePage({
                       </p>
                     </div>
                     <span className="text-[13px] font-bold text-brand-dark">
-                      {formatBDT(supporter.amount)}
+                      {formatMoney(supporter.amount)}
                     </span>
                   </li>
                 ))}
@@ -497,23 +505,64 @@ export default async function StudentProfilePage({
                 <Link
                   key={option.type}
                   href={`/students/${student.slug}/donate?type=${option.type}`}
-                  className="group flex items-center gap-3 rounded-xl border border-border p-3 transition-colors hover:border-brand/30 hover:bg-brand-soft"
+                  className={
+                    option.recommended
+                      ? "group relative block rounded-xl border-2 border-brand bg-brand-soft p-3 transition-colors hover:border-brand-dark"
+                      : "group flex items-center gap-3 rounded-xl border border-border p-3 transition-colors hover:border-brand/30 hover:bg-brand-soft"
+                  }
                 >
-                  <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-light text-brand-dark">
-                    <option.icon className="size-4" aria-hidden="true" />
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[12.5px] font-semibold text-ink">
-                      {option.label}
-                    </p>
-                    <p className="text-[11.5px] font-bold text-brand-dark">
-                      {option.amount}
-                    </p>
-                    <p className="text-[10.5px] text-slate-muted">
-                      {option.description}
-                    </p>
-                  </div>
-                  <ArrowRight className="size-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand" />
+                  {option.recommended ? (
+                    <>
+                      <span className="absolute -top-2 right-3 rounded-full bg-brand px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                        Most popular
+                      </span>
+                      <div className="flex items-center gap-3">
+                        <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand text-white">
+                          <option.icon className="size-4" aria-hidden="true" />
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[12.5px] font-bold text-navy">
+                            {option.label}
+                          </p>
+                          <p className="text-[12.5px] font-extrabold text-brand-dark">
+                            {option.amount}
+                          </p>
+                        </div>
+                        <ArrowRight className="size-4 shrink-0 text-brand" />
+                      </div>
+                      {option.tiers.length > 1 && (
+                        <div className="mt-2.5 flex flex-wrap gap-1.5">
+                          {option.tiers.map((tier, index) => (
+                            <span
+                              key={tier}
+                              className="rounded-full border border-brand/20 bg-white px-2 py-1 text-[10.5px] font-semibold text-brand-dark"
+                            >
+                              {formatMoney(tier)}
+                              {index === 0 ? " full" : " partial"}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <span className="inline-flex size-9 shrink-0 items-center justify-center rounded-lg bg-brand-light text-brand-dark">
+                        <option.icon className="size-4" aria-hidden="true" />
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-[12.5px] font-semibold text-ink">
+                          {option.label}
+                        </p>
+                        <p className="text-[11.5px] font-bold text-brand-dark">
+                          {option.amount}
+                        </p>
+                        <p className="text-[10.5px] text-slate-muted">
+                          {option.description}
+                        </p>
+                      </div>
+                      <ArrowRight className="size-4 shrink-0 text-slate-300 transition-transform group-hover:translate-x-0.5 group-hover:text-brand" />
+                    </>
+                  )}
                 </Link>
               ))}
             </div>

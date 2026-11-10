@@ -6,11 +6,11 @@ import { ChevronRight, LockKeyhole } from "lucide-react";
 import { DonationWizard } from "@/components/donations/donation-wizard";
 import { StudentAvatar } from "@/components/students/student-avatar";
 import {
+  getEducationCategoryById,
   getStudentBySlug,
 } from "@/lib/services/students";
-import { getCategoryName } from "@/lib/mock-data/categories";
 import { fundingForStudent, getFundingTotals } from "@/lib/services/funding";
-import { formatBDT } from "@/lib/utils";
+import { formatMoney } from "@/lib/utils";
 import { toPublicStudent } from "@/lib/students";
 
 // Student slugs live in Supabase and can change at any time, so these pages are
@@ -48,9 +48,12 @@ export default async function DonatePage({
   if (!student) notFound();
 
   const publicStudent = toPublicStudent(student);
-  const totals = await getFundingTotals();
+  const [totals, category] = await Promise.all([
+    getFundingTotals(),
+    getEducationCategoryById(student.categoryId),
+  ]);
   const funding = fundingForStudent(student, totals);
-  const categoryName = getCategoryName(student.categoryId);
+  const categoryName = category?.name ?? "Education support";
 
   return (
     <div className="min-h-screen bg-surface">
@@ -101,7 +104,7 @@ export default async function DonatePage({
                   {categoryName} · {student.district}
                 </p>
                 <p className="mt-0.5 text-[10.5px] text-slate-muted">
-                  {formatBDT(funding.remaining)} still needed
+                  {formatMoney(funding.remaining)} still needed
                 </p>
               </div>
             </div>

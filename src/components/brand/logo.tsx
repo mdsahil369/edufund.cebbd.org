@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -23,29 +24,15 @@ export function Logo({
       )}
       aria-label="EduFund CEBBD home"
     >
-      <span className="relative inline-flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-gradient-to-br from-brand to-brand-deep shadow-[0_2px_8px_rgba(5,77,54,0.28)]">
-        <svg
-          viewBox="0 0 512 512"
-          className="size-8"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path d="M128 236 L256 168 L384 236 L256 304 Z" fill="#ffffff" />
-          <path
-            d="M170 270 L170 334 Q256 386 342 334 L342 270"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="26"
-            strokeLinecap="round"
-          />
-          <path
-            d="M384 236 L384 330"
-            stroke="#ffffff"
-            strokeWidth="24"
-            strokeLinecap="round"
-          />
-          <circle cx="384" cy="354" r="22" fill="#7ed0b0" />
-        </svg>
+      <span className="relative inline-flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-white ring-1 ring-black/5">
+        <Image
+          src="/cebbd.png"
+          alt=""
+          width={80}
+          height={80}
+          className="size-9 object-contain"
+          priority
+        />
       </span>
       {!compact && (
         <span className="flex flex-col leading-none">

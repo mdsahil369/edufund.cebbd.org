@@ -1,4 +1,4 @@
-import { formatCompactBDT } from "@/lib/utils";
+import { formatCompactMoney } from "@/lib/utils";
 
 interface TrendPoint {
   label: string;
@@ -67,7 +67,7 @@ export function DonationTrendChart({ data }: { data: TrendPoint[] }) {
                 textAnchor="end"
                 className="fill-slate-400 text-[10px]"
               >
-                {formatCompactBDT(value)}
+                {formatCompactMoney(value)}
               </text>
             </g>
           );
@@ -95,7 +95,7 @@ export function DonationTrendChart({ data }: { data: TrendPoint[] }) {
               stroke="#138B60"
               strokeWidth={2.5}
             >
-              <title>{`${point.label}: ${formatCompactBDT(point.value)}`}</title>
+              <title>{`${point.label}: ${formatCompactMoney(point.value)}`}</title>
             </circle>
             <text
               x={point.x}
@@ -165,7 +165,7 @@ export function MethodDonut({
                 strokeDashoffset={-offset}
                 strokeLinecap="butt"
               >
-                <title>{`${slice.label}: ${formatCompactBDT(slice.value)}`}</title>
+                <title>{`${slice.label}: ${formatCompactMoney(slice.value)}`}</title>
               </circle>
             );
             offset += dash;

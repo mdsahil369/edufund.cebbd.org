@@ -220,7 +220,7 @@ const sections: LegalSection[] = [
         <p>
           Questions about these terms? Use the{" "}
           <Link href="/contact">contact form</Link> or email{" "}
-          <a href="mailto:hello@cebbd.org">hello@cebbd.org</a>.
+          <a href="mailto:info@cebbd.org">info@cebbd.org</a>.
         </p>
       </>
     ),

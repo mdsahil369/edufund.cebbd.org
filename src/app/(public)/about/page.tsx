@@ -18,8 +18,6 @@ import {
 import { SectionHeading } from "@/components/shared/section-heading";
 import { Reveal } from "@/components/shared/reveal";
 import { Button } from "@/components/ui/button";
-import { impactStats } from "@/lib/mock-data/stats";
-import { formatCompactBDT, formatNumber } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "About CEBBD",
@@ -175,9 +173,9 @@ export default function AboutPage() {
             </div>
             <div className="absolute -top-4 -right-3 rounded-2xl border border-white/15 bg-white p-3 text-navy shadow-xl">
               <p className="text-[9px] font-bold uppercase tracking-wider text-slate-muted">
-                Students supported
+                Shortlisted students
               </p>
-              <p className="text-xl font-extrabold">{formatNumber(impactStats.studentsSupported)}+</p>
+              <p className="text-xl font-extrabold">18</p>
             </div>
           </Reveal>
         </div>
@@ -225,27 +223,27 @@ export default function AboutPage() {
             {[
               {
                 icon: GraduationCap,
-                value: `${formatNumber(impactStats.studentsSupported)}+`,
-                label: "Students supported",
-                hint: "Across diploma, admission, and higher education",
+                value: "18",
+                label: "Students shortlisted",
+                hint: "SSC and HSC dropouts selected for a diploma",
               },
               {
                 icon: Wallet,
-                value: formatCompactBDT(impactStats.fundsRaised),
-                label: "Verified funds raised",
-                hint: "Illustrative programme total",
+                value: "$17 / month",
+                label: "Full monthly support",
+                hint: "Or $9 and $13 partial support tiers",
               },
               {
                 icon: Users,
-                value: String(impactStats.communitySupporters),
-                label: "Community supporters",
-                hint: "Donors and volunteers",
+                value: "$57 / year",
+                label: "Yearly support",
+                hint: "Covers two semesters of a diploma",
               },
               {
                 icon: Landmark,
-                value: "64",
-                label: "Districts reached",
-                hint: "Every district in Bangladesh",
+                value: "100%",
+                label: "Fees to institutes",
+                hint: "Paid against the student's polytechnic account",
               },
             ].map((stat) => (
               <div
@@ -265,8 +263,8 @@ export default function AboutPage() {
               </div>
             ))}
             <p className="text-[10px] text-slate-muted sm:col-span-2">
-              Programme figures are illustrative and will be updated as verified
-              data is added.
+              Support amounts are set by CEBBD and shown on each student profile
+              before you donate.
             </p>
           </div>
         </div>

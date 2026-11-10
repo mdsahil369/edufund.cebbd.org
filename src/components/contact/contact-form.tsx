@@ -16,6 +16,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { submitContactMessageAction } from "@/app/(public)/contact/actions";
 import {
   Select,
   SelectContent,
@@ -70,9 +71,13 @@ export function ContactForm() {
   });
 
   const onSubmit = handleSubmit(async (values) => {
-    await new Promise((resolve) => setTimeout(resolve, 700));
+    const result = await submitContactMessageAction(values);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
     setSent(values);
-    toast.success("Your message has been recorded.");
+    toast.success("Your message has been sent to the CEBBD team.");
     reset();
   });
 
@@ -86,9 +91,9 @@ export function ContactForm() {
           Thank you, {sent.name.split(" ")[0]}.
         </h2>
         <p className="mx-auto mt-2 max-w-md text-[13px] leading-relaxed text-slate-muted">
-          Your message has been recorded for the CEBBD team. For urgent matters,
-          please email or call us directly using the contact details on this
-          page.
+          Your message has reached the CEBBD team and will be reviewed by a
+          person. For urgent matters, please email or call us directly using the
+          contact details on this page.
         </p>
         <div className="mx-auto mt-4 max-w-md rounded-lg bg-surface px-3 py-2.5 text-left text-[11px] text-slate-muted">
           <p className="font-semibold text-ink">Reference</p>
@@ -210,8 +215,8 @@ export function ContactForm() {
 
         <div className="flex items-start gap-2 rounded-lg bg-surface px-3 py-2.5 text-[10.5px] leading-relaxed text-slate-muted">
           <AlertCircle className="mt-0.5 size-3.5 shrink-0" />
-          For urgent payment verification, include your receipt number. Never send
-          full bank account numbers or passwords.
+          For urgent payment verification, include your receipt number or
+          transaction ID. Never send full bank account numbers or passwords.
         </div>
 
         <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>

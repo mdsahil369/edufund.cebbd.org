@@ -59,7 +59,7 @@ import type { CampaignStatus, Student } from "@/types";
 import {
   campaignStatusLabels,
   cn,
-  formatBDT,
+  formatMoney,
   generateId,
   slugify,
 } from "@/lib/utils";
@@ -165,6 +165,7 @@ const studentSchema = z.object({
       "Use comma-separated amounts of ৳100 or more.",
     ),
   monthly: z.number({ message: "Enter a monthly amount." }).min(100),
+  monthlyOptions: z.string().trim().optional(),
   yearly: z.number({ message: "Enter a yearly amount." }).min(100),
   fullScholarship: z
     .number({ message: "Enter the full scholarship amount." })
@@ -208,6 +209,10 @@ function studentToForm(student: Student): StudentFormValues {
     adminNotes: student.privateInfo.adminNotes ?? "",
     oneTimeOptions: student.supportPlans.oneTimeOptions.join(", "),
     monthly: student.supportPlans.monthly,
+    monthlyOptions: (student.supportPlans.monthlyOptions.length > 0
+      ? student.supportPlans.monthlyOptions
+      : [student.supportPlans.monthly]
+    ).join(", "),
     yearly: student.supportPlans.yearly,
     fullScholarship: student.supportPlans.fullScholarship,
   };
@@ -244,15 +249,17 @@ const emptyForm: StudentFormValues = {
   familyIncome: "",
   adminNotes: "",
   oneTimeOptions: "1000, 2500, 5000, 10000",
-  monthly: 1500,
-  yearly: 15000,
-  fullScholarship: 25000,
+  monthly: 2100,
+  monthlyOptions: "2100, 1600, 1100",
+  yearly: 7000,
+  fullScholarship: 56000,
 };
 
 export function AdminStudents() {
   const {
     hydrated,
     students,
+    categories,
     donations,
     fundingFor,
     addStudent,
@@ -301,6 +308,9 @@ export function AdminStudents() {
   const published = students.filter(
     (student) => student.visibility === "published",
   ).length;
+
+  const categoryOptions =
+    categories.length > 0 ? categories : educationCategories;
 
   const openAdd = () => {
     setEditing(null);
@@ -390,7 +400,7 @@ export function AdminStudents() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All categories</SelectItem>
-                {educationCategories.map((item) => (
+                {categoryOptions.map((item) => (
                   <SelectItem key={item.id} value={item.id}>
                     {item.name}
                   </SelectItem>
@@ -521,7 +531,7 @@ export function AdminStudents() {
                       <div className="min-w-0">
                         <div className="flex items-center justify-between text-[10px]">
                           <span className="font-semibold text-ink">
-                            {formatBDT(funding.raised)}
+                            {formatMoney(funding.raised)}
                           </span>
                           <span className="text-slate-muted">{funding.percent}%</span>
                         </div>
@@ -686,7 +696,7 @@ export function AdminStudents() {
                         {student.visibility === "published" ? "Published" : "Hidden"}
                       </StatusPill>
                       <span className="ml-auto text-[10.5px] text-slate-muted">
-                        {formatBDT(funding.raised)} / {formatBDT(funding.required)}
+                        {formatMoney(funding.raised)} / {formatMoney(funding.required)}
                       </span>
                     </div>
                     <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted">
@@ -819,6 +829,9 @@ function StudentForm({
   onCancel,
   onSave,
 }: StudentFormProps) {
+  const { categories } = useDemoData();
+  const categoryOptions =
+    categories.length > 0 ? categories : educationCategories;
   const [photoUrl, setPhotoUrl] = useState<string | undefined>(student?.photoUrl);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
@@ -868,6 +881,11 @@ function StudentForm({
       .map((item) => Number(item.trim()))
       .filter((amount) => Number.isFinite(amount) && amount > 0);
 
+    const monthlyOptions = (values.monthlyOptions ?? "")
+      .split(",")
+      .map((item) => Number(item.trim()))
+      .filter((amount) => Number.isFinite(amount) && amount >= 100);
+
     const familyIncome = values.familyIncome
       ? Number(values.familyIncome.replace(/[^0-9]/g, ""))
       : undefined;
@@ -911,6 +929,8 @@ function StudentForm({
         supportPlans: {
           oneTimeOptions,
           monthly: values.monthly,
+          monthlyOptions:
+            monthlyOptions.length > 0 ? monthlyOptions : [values.monthly],
           yearly: values.yearly,
           fullScholarship: values.fullScholarship,
         },
@@ -1075,9 +1095,10 @@ function StudentForm({
                     <SelectValue placeholder="Choose a category" />
                   </SelectTrigger>
                   <SelectContent>
-                    {educationCategories.map((item) => (
+                    {categoryOptions.map((item) => (
                       <SelectItem key={item.id} value={item.id}>
                         {item.name}
+                        {item.active ? "" : " (hidden)"}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -1277,6 +1298,22 @@ function StudentForm({
                 {...register("monthly", { valueAsNumber: true })}
               />
               {fieldError("monthly")}
+            </div>
+            <div className="sm:col-span-2">
+              <label htmlFor="monthlyOptions" className="mb-1 block text-[11.5px] font-semibold text-ink">
+                Monthly tiers (৳, comma separated)
+              </label>
+              <Input
+                id="monthlyOptions"
+                placeholder="2100, 1600, 1100"
+                aria-invalid={Boolean(errors.monthlyOptions)}
+                {...register("monthlyOptions")}
+              />
+              <p className="mt-1 text-[10px] text-slate-muted">
+                2,100 / 1,600 / 1,100 show as $17 / $13 / $9 per month (full,
+                partial, partial support).
+              </p>
+              {fieldError("monthlyOptions")}
             </div>
             <div>
               <label htmlFor="yearly" className="mb-1 block text-[11.5px] font-semibold text-ink">

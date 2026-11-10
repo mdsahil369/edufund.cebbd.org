@@ -17,6 +17,19 @@ export function cn(...inputs: ClassValue[]) {
 
 /* ------------------------------ Currency ------------------------------ */
 
+// USD-first helpers live in currency.ts; re-exported here so components keep a
+// single utility import.
+export {
+  formatMoney,
+  formatCompactMoney,
+  formatUSD,
+  toUsd,
+  toBdt,
+  USD_TO_BDT,
+  MONTHLY_TIERS,
+  MIN_ONE_TIME_BDT,
+} from "@/lib/currency";
+
 const numberFormatter = new Intl.NumberFormat("en-US");
 
 export function formatNumber(value: number) {
@@ -139,6 +152,7 @@ export const paymentMethodLabels: Record<PaymentMethodId, string> = {
   "bank-transfer": "Bank transfer",
   bkash: "bKash",
   nagad: "Nagad",
+  card: "Card / international transfer",
 };
 
 export const campaignStatusLabels: Record<CampaignStatus, string> = {

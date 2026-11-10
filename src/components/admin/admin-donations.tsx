@@ -35,12 +35,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useDemoData } from "@/lib/store/demo-store";
+import { ManualDonationDialog } from "@/components/admin/manual-donation-dialog";
 import type { Donation, DonationStatus, PaymentMethodId } from "@/types";
 import {
   cn,
   donationStatusLabels,
   donationTypeLabels,
-  formatBDT,
+  formatMoney,
   formatDate,
   formatDateTime,
   paymentMethodLabels,
@@ -152,7 +153,7 @@ export function AdminDonations() {
     }
 
     toast.success(
-      `${formatBDT(selected.amount)} approved and added to the campaign total.`,
+      `${formatMoney(selected.amount)} approved and added to the campaign total.`,
     );
     setSelected(null);
   };
@@ -183,9 +184,12 @@ export function AdminDonations() {
         title="Donations"
         description="Verify manual payments before they count toward a student's campaign. Only approved donations are included in public funding totals."
         action={
-          <div className="inline-flex items-center gap-2 rounded-lg border border-brand/15 bg-brand-soft px-3 py-2 text-[11.5px] text-brand-dark">
-            <ShieldCheck className="size-4" />
-            Manual verification workflow
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="inline-flex items-center gap-2 rounded-lg border border-brand/15 bg-brand-soft px-3 py-2 text-[11.5px] text-brand-dark">
+              <ShieldCheck className="size-4" />
+              Manual verification workflow
+            </div>
+            <ManualDonationDialog />
           </div>
         }
       />
@@ -195,11 +199,11 @@ export function AdminDonations() {
           label="Pending review"
           value={String(counts.pending)}
           icon={Clock3}
-          hint={`${formatBDT(pendingAmount)} awaiting verification`}
+          hint={`${formatMoney(pendingAmount)} awaiting verification`}
         />
         <StatCard
           label="Verified total"
-          value={formatBDT(approvedAmount)}
+          value={formatMoney(approvedAmount)}
           icon={CheckCircle2}
           hint={`${counts.approved} approved donations`}
           tone="brand"
@@ -354,7 +358,7 @@ export function AdminDonations() {
                       </div>
                       <div>
                         <p className="text-[12px] font-bold text-ink">
-                          {formatBDT(donation.amount)}
+                          {formatMoney(donation.amount)}
                         </p>
                         <p className="text-[9.5px] text-slate-muted">
                           {donationTypeLabels[donation.type]}
@@ -422,7 +426,7 @@ export function AdminDonations() {
                         {formatDate(donation.submittedAt)}
                       </p>
                       <p className="text-[13px] font-bold text-ink">
-                        {formatBDT(donation.amount)}
+                        {formatMoney(donation.amount)}
                       </p>
                     </div>
                     <Button
@@ -467,7 +471,7 @@ export function AdminDonations() {
                   <div className="rounded-xl border border-border bg-surface p-3">
                     <p className="text-[10px] text-slate-muted">Amount</p>
                     <p className="mt-0.5 text-xl font-extrabold text-navy">
-                      {formatBDT(selected.amount)}
+                      {formatMoney(selected.amount)}
                     </p>
                     <p className="text-[10px] text-slate-muted">
                       {donationTypeLabels[selected.type]}

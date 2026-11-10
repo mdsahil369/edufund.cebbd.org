@@ -41,7 +41,7 @@ import type { Donor } from "@/types";
 import {
   donationStatusLabels,
   donationTypeLabels,
-  formatBDT,
+  formatMoney,
   formatDate,
 } from "@/lib/utils";
 
@@ -194,7 +194,7 @@ export function AdminDonors() {
         />
         <StatCard
           label="Verified giving"
-          value={formatBDT(totalVerified)}
+          value={formatMoney(totalVerified)}
           icon={UserRound}
           hint="Across all donor accounts"
         />
@@ -303,7 +303,7 @@ export function AdminDonors() {
                       )}
                     </div>
                     <p className="text-[12px] font-bold text-ink">
-                      {formatBDT(total)}
+                      {formatMoney(total)}
                     </p>
                     <StatusPill
                       tone={donor.showNamePublicly ? "brand" : "neutral"}
@@ -361,7 +361,7 @@ export function AdminDonors() {
                       {approvedCount} approved ·{" "}
                       {pendingCount > 0 ? `${pendingCount} pending` : "no pending"}
                     </span>
-                    <span className="font-bold text-ink">{formatBDT(total)}</span>
+                    <span className="font-bold text-ink">{formatMoney(total)}</span>
                   </div>
                   <Button
                     variant="outline"
@@ -426,7 +426,7 @@ export function AdminDonors() {
                 <div className="rounded-lg border border-border p-2.5 text-center">
                   <p className="text-[9.5px] text-slate-muted">Verified</p>
                   <p className="text-[13px] font-bold text-brand-dark">
-                    {formatBDT(selectedStats.total)}
+                    {formatMoney(selectedStats.total)}
                   </p>
                 </div>
                 <div className="rounded-lg border border-border p-2.5 text-center">
@@ -543,7 +543,7 @@ export function AdminDonors() {
                             </p>
                           </div>
                           <p className="text-[11.5px] font-bold text-ink">
-                            {formatBDT(donation.amount)}
+                            {formatMoney(donation.amount)}
                           </p>
                           <StatusPill
                             tone={donationStatusTone(donation.status)}

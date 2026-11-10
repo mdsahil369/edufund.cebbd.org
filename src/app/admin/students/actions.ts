@@ -223,6 +223,10 @@ export async function setStudentSupportPlansAction(
     .update({
       support_one_time: plans.oneTimeOptions,
       support_monthly: plans.monthly,
+      support_monthly_options:
+        plans.monthlyOptions.length > 0
+          ? plans.monthlyOptions
+          : [plans.monthly, Math.round(plans.monthly * 0.76), Math.round(plans.monthly * 0.52)],
       support_yearly: plans.yearly,
       support_full_scholarship: plans.fullScholarship,
     })

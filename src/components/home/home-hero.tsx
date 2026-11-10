@@ -1,18 +1,18 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   BadgeCheck,
   GraduationCap,
   Heart,
+  Landmark,
   ShieldCheck,
-  Sparkles,
-  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { StudentAvatar } from "@/components/students/student-avatar";
 import { FundingProgress } from "@/components/students/funding-progress";
 import type { FundingSummary, PublicStudent } from "@/types";
-import { formatBDT } from "@/lib/utils";
+import { formatMoney } from "@/lib/currency";
 
 interface HeroProps {
   featuredStudent: PublicStudent;
@@ -22,10 +22,7 @@ interface HeroProps {
 export function HomeHero({ featuredStudent, funding }: HeroProps) {
   return (
     <section className="relative overflow-hidden bg-white">
-      <div
-        className="pointer-events-none absolute inset-0"
-        aria-hidden="true"
-      >
+      <div className="pointer-events-none absolute inset-0" aria-hidden="true">
         <div className="absolute -top-32 -left-32 size-[520px] rounded-full bg-brand-light/70 blur-3xl" />
         <div className="absolute top-24 right-0 size-[420px] rounded-full bg-[#e9f1f8] blur-3xl" />
         <div className="pattern-dots absolute inset-y-0 right-0 w-1/2 opacity-40" />
@@ -34,12 +31,18 @@ export function HomeHero({ featuredStudent, funding }: HeroProps) {
       <div className="container-page relative grid items-center gap-14 py-14 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:py-24">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-brand/15 bg-brand-light px-3 py-1.5 text-[11.5px] font-semibold text-brand-dark">
-            <ShieldCheck className="size-3.5" aria-hidden="true" />
-            Verified education crowdfunding in Bangladesh
+            <Image
+              src="/cebbd.png"
+              alt=""
+              width={18}
+              height={18}
+              className="size-[18px] rounded object-contain"
+            />
+            Community Empowerment Bangladesh
           </div>
 
-          <h1 className="mt-6 max-w-2xl text-[2.6rem] leading-[1.05] font-extrabold tracking-[-0.03em] text-navy sm:text-5xl lg:text-[3.6rem]">
-            Just $17 a Month. Four Years.{" "}
+          <h1 className="mt-6 max-w-2xl text-[2.6rem] leading-[1.05] font-extrabold tracking-[-0.03em] text-navy sm:text-5xl lg:text-[3.4rem]">
+            Just $17 a month. Four Years.{" "}
             <span className="relative whitespace-nowrap">
               <span className="text-gradient-brand">A Future Transformed.</span>
               <svg
@@ -60,8 +63,9 @@ export function HomeHero({ featuredStudent, funding }: HeroProps) {
           </h1>
 
           <p className="mt-6 max-w-xl text-[15.5px] leading-relaxed text-slate-muted sm:text-base">
-            Your support can remove financial barriers and help deserving
-            students continue their education and build a brighter future.
+            CEB has carefully shortlisted 18 deserving students from hundreds of
+            SSC and HSC dropouts. Your sponsorship can help them earn a Diploma in
+            Engineering and build a future as skilled professionals.
           </p>
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -80,28 +84,19 @@ export function HomeHero({ featuredStudent, funding }: HeroProps) {
           </div>
 
           <div className="mt-9 flex flex-wrap items-center gap-x-6 gap-y-3 text-xs text-slate-muted">
-            <div className="flex items-center">
-              {["Ayesha Rahman", "Tanvir Islam", "Sadia Noor", "Rezaul Karim"].map(
-                (name, index) => (
-                  <StudentAvatar
-                    key={name}
-                    name={name}
-                    size="xs"
-                    className={index > 0 ? "-ml-2 ring-2 ring-white" : "ring-2 ring-white"}
-                  />
-                ),
-              )}
-              <span className="ml-2.5 font-semibold text-ink">960+ supporters</span>
-            </div>
-            <span className="hidden h-4 w-px bg-border sm:block" />
             <span className="flex items-center gap-1.5">
               <BadgeCheck className="size-4 text-brand" aria-hidden="true" />
-              Applications verified by our team
+              Verified student profiles
             </span>
             <span className="hidden h-4 w-px bg-border sm:block" />
             <span className="flex items-center gap-1.5">
               <ShieldCheck className="size-4 text-brand" aria-hidden="true" />
-              Manual, transparent payments
+              Manual payment verification
+            </span>
+            <span className="hidden h-4 w-px bg-border sm:block" />
+            <span className="flex items-center gap-1.5">
+              <Landmark className="size-4 text-brand" aria-hidden="true" />
+              Fees paid to the institution
             </span>
           </div>
         </div>
@@ -154,12 +149,12 @@ export function HomeHero({ featuredStudent, funding }: HeroProps) {
               </div>
 
               <div className="mt-4">
-                <div className="flex items-end justify-between text-[11px]">
+                <div className="flex items-end justify-between gap-3 text-[11px]">
                   <span className="font-bold text-white">
-                    {formatBDT(funding.raised)}
+                    {formatMoney(funding.raised)}
                   </span>
-                  <span className="text-white/50">
-                    of {formatBDT(funding.required)}
+                  <span className="text-right text-white/50">
+                    of {formatMoney(funding.required)}
                   </span>
                 </div>
                 <FundingProgress
@@ -171,24 +166,21 @@ export function HomeHero({ featuredStudent, funding }: HeroProps) {
 
               <div className="mt-3 flex items-center justify-between text-[10.5px] text-white/45">
                 <span>{funding.percent}% funded</span>
-                <span>{funding.supporterCount} supporters</span>
+                <span>
+                  {funding.supporterCount} verified{" "}
+                  {funding.supporterCount === 1 ? "supporter" : "supporters"}
+                </span>
               </div>
             </div>
 
             <div className="relative mt-3 grid grid-cols-2 gap-3">
               <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
-                <p className="flex items-center gap-1.5 text-[10px] text-white/45">
-                  <Users className="size-3" />
-                  Community
-                </p>
-                <p className="mt-1 text-sm font-bold text-white">960+ donors</p>
+                <p className="text-[10px] text-white/45">Monthly support</p>
+                <p className="mt-1 text-sm font-bold text-white">From $9 / month</p>
               </div>
               <div className="rounded-xl border border-white/10 bg-white/[0.05] p-3">
-                <p className="flex items-center gap-1.5 text-[10px] text-white/45">
-                  <Sparkles className="size-3" />
-                  This month
-                </p>
-                <p className="mt-1 text-sm font-bold text-white">18 campaigns</p>
+                <p className="text-[10px] text-white/45">Verification</p>
+                <p className="mt-1 text-sm font-bold text-white">Checked by our team</p>
               </div>
             </div>
 
@@ -205,10 +197,8 @@ export function HomeHero({ featuredStudent, funding }: HeroProps) {
               <BadgeCheck className="size-4" />
             </span>
             <div>
-              <p className="text-[10px] font-medium text-slate-muted">
-                Donation verified
-              </p>
-              <p className="text-xs font-bold text-navy">৳ 5,000 approved</p>
+              <p className="text-[10px] font-medium text-slate-muted">Donation checked</p>
+              <p className="text-xs font-bold text-navy">Verified by our team</p>
             </div>
           </div>
 
@@ -217,10 +207,8 @@ export function HomeHero({ featuredStudent, funding }: HeroProps) {
               <Heart className="size-4" />
             </span>
             <div>
-              <p className="text-[10px] font-medium text-slate-muted">
-                Direct to students
-              </p>
-              <p className="text-xs font-bold text-navy">100% verified</p>
+              <p className="text-[10px] font-medium text-slate-muted">Paid directly</p>
+              <p className="text-xs font-bold text-navy">To the institution</p>
             </div>
           </div>
         </div>

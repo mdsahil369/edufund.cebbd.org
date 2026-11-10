@@ -10,7 +10,7 @@ import {
   avatarPalette,
   campaignStatusLabels,
   cn,
-  formatBDT,
+  formatMoney,
   truncate,
 } from "@/lib/utils";
 
@@ -98,9 +98,9 @@ export function StudentCard({
         <div className="mt-auto pt-5">
           <div className="flex items-end justify-between gap-3 text-xs">
             <div>
-              <p className="font-bold text-brand-dark">{formatBDT(funding.raised)}</p>
+              <p className="font-bold text-brand-dark">{formatMoney(funding.raised)}</p>
               <p className="mt-0.5 text-[11px] text-slate-muted">
-                raised of {formatBDT(funding.required)}
+                raised of {formatMoney(funding.required)}
               </p>
             </div>
             <span className="rounded-full bg-brand-light px-2 py-1 text-[11px] font-bold text-brand-dark">
