@@ -33,7 +33,7 @@ export const paymentSettings: PaymentSettings = {
 export const siteSettings: SiteSettings = {
   siteName: "EduFund CEBBD",
   organization: "Community Empowerment Bangladesh",
-  tagline: "Every student deserves a chance to dream.",
+  tagline: "Just $17 a month. Four Years. A Future Transformed.",
   description:
     "EduFund CEBBD connects generous supporters with financially disadvantaged students across Bangladesh, helping them continue their education with dignity and transparency.",
   contactEmail: "hello@cebbd.org",

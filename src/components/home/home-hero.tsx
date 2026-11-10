@@ -39,9 +39,9 @@ export function HomeHero({ featuredStudent, funding }: HeroProps) {
           </div>
 
           <h1 className="mt-6 max-w-2xl text-[2.6rem] leading-[1.05] font-extrabold tracking-[-0.03em] text-navy sm:text-5xl lg:text-[3.6rem]">
-            Every student deserves a chance to{" "}
+            Just $17 a Month. Four Years.{" "}
             <span className="relative whitespace-nowrap">
-              <span className="text-gradient-brand">dream.</span>
+              <span className="text-gradient-brand">A Future Transformed.</span>
               <svg
                 className="absolute -bottom-2 left-0 h-2.5 w-full text-brand/30"
                 viewBox="0 0 200 12"
