@@ -47,8 +47,9 @@ function SiteSettingsForm() {
   const router = useRouter();
   const [form, setForm] = useState<SiteSettings>(siteSettings);
   const [resetOpen, setResetOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const save = () => {
+  const save = async () => {
     if (
       !form.siteName.trim() ||
       !form.organization.trim() ||
@@ -58,8 +59,14 @@ function SiteSettingsForm() {
       toast.error("Site name, organization, and contact details are required.");
       return;
     }
-    updateSiteSettings(form);
-    toast.success("Site settings saved. Header details update immediately.");
+    setSaving(true);
+    const result = await updateSiteSettings(form);
+    setSaving(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Site settings saved to the database.");
   };
 
   const setField = <K extends keyof SiteSettings>(
@@ -73,11 +80,11 @@ function SiteSettingsForm() {
     <div className="space-y-6">
       <PageHeader
         title="Site Settings"
-        description="Manage public site details, the announcement bar, and sample data. Changes are stored in this browser."
+        description="Manage public site details and the announcement bar. Changes are saved to the database and appear across the site for everyone."
         action={
-          <Button onClick={save}>
+          <Button onClick={save} disabled={saving}>
             <Save className="size-4" />
-            Save settings
+            {saving ? "Saving…" : "Save settings"}
           </Button>
         }
       />

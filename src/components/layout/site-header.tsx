@@ -135,7 +135,7 @@ export function SiteHeader() {
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <button
-                    className="hidden items-center gap-2 rounded-full border border-border bg-white py-1 pr-3 pl-1 text-sm font-medium text-ink transition-colors hover:border-brand/30 hover:bg-brand-soft md:flex"
+                    className="hidden cursor-pointer items-center gap-2 rounded-full border border-border bg-white py-1 pr-3 pl-1 text-sm font-medium text-ink transition-colors hover:border-brand/30 hover:bg-brand-soft md:flex"
                     aria-label="Open account menu"
                   >
                     <StudentAvatar name={session.name} size="xs" />

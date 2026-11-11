@@ -28,7 +28,7 @@ export function HomeHero({ featuredStudent, funding }: HeroProps) {
         <div className="pattern-dots absolute inset-y-0 right-0 w-1/2 opacity-40" />
       </div>
 
-      <div className="container-page relative grid items-center gap-14 py-14 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:py-24">
+      <div className="container-page relative grid items-center gap-10 py-10 sm:gap-14 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10 lg:py-24">
         <div>
           <div className="inline-flex items-center gap-2 rounded-full border border-brand/15 bg-brand-light px-3 py-1.5 text-[11.5px] font-semibold text-brand-dark">
             <Image
@@ -41,12 +41,12 @@ export function HomeHero({ featuredStudent, funding }: HeroProps) {
             Community Empowerment Bangladesh
           </div>
 
-          <h1 className="mt-6 max-w-2xl text-[2.6rem] leading-[1.05] font-extrabold tracking-[-0.03em] text-navy sm:text-5xl lg:text-[3.4rem]">
-            Just $17 a month. Four Years.{" "}
-            <span className="relative whitespace-nowrap">
-              <span className="text-gradient-brand">A Future Transformed.</span>
+          <h1 className="mt-5 max-w-2xl text-[1.95rem] leading-[1.12] font-extrabold tracking-[-0.02em] break-words text-navy sm:mt-6 sm:text-[2.8rem] sm:leading-[1.06] lg:text-[3.4rem] lg:tracking-[-0.03em]">
+            Just $17 a month. Four Years. A Future{" "}
+            <span className="relative">
+              <span className="text-gradient-brand">Transformed.</span>
               <svg
-                className="absolute -bottom-2 left-0 h-2.5 w-full text-brand/30"
+                className="absolute -bottom-1.5 left-0 hidden h-2.5 w-full text-brand/30 sm:block"
                 viewBox="0 0 200 12"
                 preserveAspectRatio="none"
                 aria-hidden="true"

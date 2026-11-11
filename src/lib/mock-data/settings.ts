@@ -41,6 +41,43 @@ export const paymentSettings: PaymentSettings = {
   updatedAt: "2026-11-10T09:00:00.000Z",
 };
 
+/**
+ * Settings stored in Supabase (or an older localStorage cache) can miss fields
+ * added in a later release, so every nested value is merged onto the defaults.
+ */
+export function mergePaymentSettings(
+  stored?: Partial<PaymentSettings> | null,
+): PaymentSettings {
+  if (!stored) return paymentSettings;
+  return {
+    ...paymentSettings,
+    ...stored,
+    bank: { ...paymentSettings.bank, ...(stored.bank ?? {}) },
+    bkash: { ...paymentSettings.bkash, ...(stored.bkash ?? {}) },
+    nagad: { ...paymentSettings.nagad, ...(stored.nagad ?? {}) },
+    whatsapp: { ...paymentSettings.whatsapp, ...(stored.whatsapp ?? {}) },
+    instructions:
+      Array.isArray(stored.instructions) && stored.instructions.length > 0
+        ? stored.instructions
+        : paymentSettings.instructions,
+    international:
+      Array.isArray(stored.international) && stored.international.length > 0
+        ? stored.international
+        : paymentSettings.international,
+  };
+}
+
+export function mergeSiteSettings(
+  stored?: Partial<SiteSettings> | null,
+): SiteSettings {
+  if (!stored) return siteSettings;
+  return {
+    ...siteSettings,
+    ...stored,
+    socials: { ...siteSettings.socials, ...(stored.socials ?? {}) },
+  };
+}
+
 export const siteSettings: SiteSettings = {
   siteName: "EduFund CEBBD",
   organization: "Community Empowerment Bangladesh",

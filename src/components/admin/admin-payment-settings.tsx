@@ -42,8 +42,9 @@ function PaymentSettingsForm() {
   const [internationalText, setInternationalText] = useState(
     paymentSettings.international.join("\n"),
   );
+  const [saving, setSaving] = useState(false);
 
-  const save = () => {
+  const save = async () => {
     const instructions = instructionsText
       .split("\n")
       .map((line) => line.trim())
@@ -52,7 +53,8 @@ function PaymentSettingsForm() {
       toast.error("Add at least one payment instruction.");
       return;
     }
-    updatePaymentSettings({
+    setSaving(true);
+    const result = await updatePaymentSettings({
       ...form,
       instructions,
       international: internationalText
@@ -61,7 +63,12 @@ function PaymentSettingsForm() {
         .filter(Boolean),
       updatedAt: new Date().toISOString(),
     });
-    toast.success("Payment settings saved.");
+    setSaving(false);
+    if (!result.ok) {
+      toast.error(result.error);
+      return;
+    }
+    toast.success("Payment settings saved to the database.");
   };
 
   return (
@@ -83,9 +90,9 @@ function PaymentSettingsForm() {
               <RotateCcw className="size-4" />
               Discard
             </Button>
-            <Button onClick={save}>
+            <Button onClick={save} disabled={saving}>
               <Save className="size-4" />
-              Save settings
+              {saving ? "Saving…" : "Save settings"}
             </Button>
           </div>
         }

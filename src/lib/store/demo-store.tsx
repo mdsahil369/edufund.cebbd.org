@@ -35,9 +35,17 @@ import {
   messages as initialMessages,
 } from "@/lib/mock-data/conversations";
 import {
+  mergePaymentSettings,
+  mergeSiteSettings,
   paymentSettings as initialPaymentSettings,
   siteSettings as initialSiteSettings,
 } from "@/lib/mock-data/settings";
+import {
+  loadSettingsAction,
+  savePaymentSettingsAction,
+  saveSiteSettingsAction,
+  type SettingsActionResult,
+} from "@/app/admin/settings/actions";
 import { generateId } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -85,43 +93,7 @@ type PersistedData = Pick<
   "conversations" | "messages" | "paymentSettings" | "siteSettings"
 >;
 
-/**
- * Settings saved in localStorage can come from an older release, so every
- * nested field is merged onto the current defaults. Without this, a new field
- * (for example `paymentSettings.international`) would be undefined at runtime.
- */
-function withDefaultPaymentSettings(
-  stored?: Partial<PaymentSettings> | null,
-): PaymentSettings {
-  if (!stored) return initialPaymentSettings;
-  return {
-    ...initialPaymentSettings,
-    ...stored,
-    bank: { ...initialPaymentSettings.bank, ...(stored.bank ?? {}) },
-    bkash: { ...initialPaymentSettings.bkash, ...(stored.bkash ?? {}) },
-    nagad: { ...initialPaymentSettings.nagad, ...(stored.nagad ?? {}) },
-    whatsapp: { ...initialPaymentSettings.whatsapp, ...(stored.whatsapp ?? {}) },
-    instructions:
-      Array.isArray(stored.instructions) && stored.instructions.length > 0
-        ? stored.instructions
-        : initialPaymentSettings.instructions,
-    international:
-      Array.isArray(stored.international) && stored.international.length > 0
-        ? stored.international
-        : initialPaymentSettings.international,
-  };
-}
 
-function withDefaultSiteSettings(
-  stored?: Partial<SiteSettings> | null,
-): SiteSettings {
-  if (!stored) return initialSiteSettings;
-  return {
-    ...initialSiteSettings,
-    ...stored,
-    socials: { ...initialSiteSettings.socials, ...(stored.socials ?? {}) },
-  };
-}
 
 function displayNameFor(user: User): string {
   const metadata = user.user_metadata ?? {};
@@ -270,8 +242,12 @@ interface DemoContextValue extends DemoDataState {
     studentId: string,
     plans: StudentSupportPlans,
   ) => Promise<StudentActionResult>;
-  updatePaymentSettings: (settings: PaymentSettings) => void;
-  updateSiteSettings: (settings: SiteSettings) => void;
+  updatePaymentSettings: (
+    settings: PaymentSettings,
+  ) => Promise<SettingsActionResult>;
+  updateSiteSettings: (
+    settings: SiteSettings,
+  ) => Promise<SettingsActionResult>;
   resetDemoData: () => void;
   fundingFor: (studentId: string) => FundingSummary;
 }
@@ -372,14 +348,38 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           setState((previous) => ({
             ...previous,
             ...data,
-            paymentSettings: withDefaultPaymentSettings(data.paymentSettings),
-            siteSettings: withDefaultSiteSettings(data.siteSettings),
+            paymentSettings: mergePaymentSettings(data.paymentSettings),
+            siteSettings: mergeSiteSettings(data.siteSettings),
           }));
         }
       }
     } catch {
       // Corrupt storage should never break the app.
     }
+  }, []);
+
+  // Website settings live in Supabase, so load them for every visitor. The
+  // response is merged with defaults, which also covers the case where the SQL
+  // has not been run yet.
+  useEffect(() => {
+    let active = true;
+
+    loadSettingsAction()
+      .then((loaded) => {
+        if (!active) return;
+        setState((previous) => ({
+          ...previous,
+          paymentSettings: loaded.paymentSettings,
+          siteSettings: loaded.siteSettings,
+        }));
+      })
+      .catch(() => {
+        // Defaults stay in place; the public pages keep working.
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Load the real Supabase user and keep the session in sync with auth events.
@@ -1021,16 +1021,32 @@ export function DemoProvider({ children }: { children: ReactNode }) {
     [],
   );
 
-  const updatePaymentSettings = useCallback((settings: PaymentSettings) => {
-    setState((previous) => ({
-      ...previous,
-      paymentSettings: { ...settings, updatedAt: new Date().toISOString() },
-    }));
-  }, []);
+  const updatePaymentSettings = useCallback(
+    async (settings: PaymentSettings): Promise<SettingsActionResult> => {
+      const result = await savePaymentSettingsAction(settings);
+      if (!result.ok) return result;
 
-  const updateSiteSettings = useCallback((settings: SiteSettings) => {
-    setState((previous) => ({ ...previous, siteSettings: settings }));
-  }, []);
+      setState((previous) => ({
+        ...previous,
+        paymentSettings: { ...settings, updatedAt: new Date().toISOString() },
+      }));
+
+      return result;
+    },
+    [],
+  );
+
+  const updateSiteSettings = useCallback(
+    async (settings: SiteSettings): Promise<SettingsActionResult> => {
+      const result = await saveSiteSettingsAction(settings);
+      if (!result.ok) return result;
+
+      setState((previous) => ({ ...previous, siteSettings: settings }));
+
+      return result;
+    },
+    [],
+  );
 
   const resetDemoData = useCallback(() => {
     try {

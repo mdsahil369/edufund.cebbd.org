@@ -36,23 +36,28 @@ export function StudentCard({
         className,
       )}
     >
-      <div
-        className="relative h-28 overflow-hidden"
-        style={{ backgroundImage: palette.backgroundImage }}
-      >
-        <div className="pattern-grid absolute inset-0 opacity-70" aria-hidden="true" />
+      {/* The banner keeps its own clipping so the avatar below is never cut in
+          half where it overlaps the card body. */}
+      <div className="relative">
         <div
-          className="absolute -top-10 -right-8 size-36 rounded-full bg-white/10"
-          aria-hidden="true"
-        />
-        <div
-          className="absolute -bottom-16 left-16 size-32 rounded-full bg-black/10"
-          aria-hidden="true"
-        />
-        <span className="absolute top-3.5 right-3.5 rounded-full bg-white/15 px-2.5 py-1 text-[10.5px] font-semibold text-white backdrop-blur-sm">
-          {getCategoryName(student.categoryId)}
-        </span>
-        <div className="absolute -bottom-8 left-5">
+          className="relative h-28 overflow-hidden"
+          style={{ backgroundImage: palette.backgroundImage }}
+        >
+          <div className="pattern-grid absolute inset-0 opacity-70" aria-hidden="true" />
+          <div
+            className="absolute -top-10 -right-8 size-36 rounded-full bg-white/10"
+            aria-hidden="true"
+          />
+          <div
+            className="absolute -bottom-16 left-16 size-32 rounded-full bg-black/10"
+            aria-hidden="true"
+          />
+          <span className="absolute top-3.5 right-3.5 rounded-full bg-white/15 px-2.5 py-1 text-[10.5px] font-semibold text-white backdrop-blur-sm">
+            {getCategoryName(student.categoryId)}
+          </span>
+        </div>
+
+        <div className="absolute -bottom-8 left-5 z-10">
           <StudentAvatar
             name={student.fullName}
             photoUrl={student.photoUrl}
